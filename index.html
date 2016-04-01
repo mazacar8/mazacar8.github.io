@@ -40,7 +40,7 @@
 <ul>
 <li>The primary challenge of our project is to deal with the dependencies between the different steps in the sequential algorithm. The sequential algorithm first applies advection forces, followed by diffusion, external forces and then subtracts the pressure gradient to obtain a final result for that step. Finding a way to eliminate dependencies between these steps to maximize performance and maintain correctness is going to be one of the main focuses of our algorithm.</li>
 <li>A limitation of the numerical steps of the Navier-Stokes algorithm is that most of them cannot be done in place. This requires us to store temporary values. This would require us to store temporary values at each step for each pixel and then accessing each of these values for the next step. Figuring out a way to manage the lack of in-place algorithms/coming up with in-place algorithms will have a major impact on memory access latencies and cache locality of our algorithm.</li>
-<li>In terms of workload, utilizing the full capability of the GPU </li>
+<li>In terms of workload, instruction stream divergence at the boundaries of the fluid or different parts of the fluid at different velocities will affect the efficiency of our code through work imbalance between SIMD execution units. Since we'll be working over tens of thousands of pixels, utilizing the full capability of the GPU should not be an issue.</li>
 </ul>
 
 <h3>
