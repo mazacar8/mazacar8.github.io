@@ -44,11 +44,11 @@
 
 <p>Our application is compute-intensive since we need to continuously solve the Navier-Stakes equations for all particles across the Cartesian grid at every time step. A time step consists of the following step in code (ref: <a href="http://http.developer.nvidia.com/GPUGems/gpugems_ch38.html">http://http.developer.nvidia.com/GPUGems/gpugems_ch38.html</a>) :</p>
 
-<p><code>u = advect(u); 
-u = diffuse(u); 
-u = addForces(u); 
-computePressure(u); 
-u = subtractPressureGradient(u, p);</code></p>
+<p><code>u = advect(u);</code>
+<code>u = diffuse(u);</code>
+<code>u = addForces(u);</code>
+<code>computePressure(u);</code>
+<code>u = subtractPressureGradient(u, p);</code></p>
 
 <p>Thus, this problem will benefit with parallelism since we can parallelize these computations for all the Cartesian points. Also, a lot of temporary storage is needed and the memory model of a GPU would help reduce latency for the application.</p>
 
