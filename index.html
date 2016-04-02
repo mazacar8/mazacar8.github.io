@@ -36,18 +36,17 @@
 
 <p>We need a quantitative representation of a fluids’ state to simulate its behavior. Velocity and pressure are the most important quantity that we can represent since they describe how a fluid moves and its interaction with surroundings. Thus we represent a fluid as a vector and pressure field across the space of the fluid.</p>
 
-<p><img src="http://http.developer.nvidia.com/GPUGems/elementLinks/fig38-03.jpg" alt="If the velocity and pressure are known for the initial time t = 0, then the state of the fluid over time can be described by the Navier-Stokes equations for incompressible flow. 
-"></p>
+<p><img src="http://http.developer.nvidia.com/GPUGems/elementLinks/fig38-03.jpg" alt="If the velocity and pressure are known for the initial time t = 0, then the state of the fluid over time can be described by the Navier-Stokes equations for incompressible flow."></p>
 
 <p>These equations are derived from applying Newton’s second law to fluid motion with the assumption that the stress in the fluid is the sum of a diffusing viscous term and a pressure term. The key to fluid simulation is to determine the current velocity and pressure field at each time step using these equations.</p>
 
 <p>Our application is compute-intensive since we need to continuously solve the Navier-Stakes equations for all particles across the Cartesian grid at every time step. A time step consists of the following step in code (ref: <a href="http://http.developer.nvidia.com/GPUGems/gpugems_ch38.html">http://http.developer.nvidia.com/GPUGems/gpugems_ch38.html</a>) :</p>
 
-<p>u = advect(u); 
+<p><code>u = advect(u); 
 u = diffuse(u); 
 u = addForces(u); 
 computePressure(u); 
-u = subtractPressureGradient(u, p);</p>
+u = subtractPressureGradient(u, p);</code></p>
 
 <p>Thus, this problem will benefit with parallelism since we can parallelize these computations for all the Cartesian points. Also, a lot of temporary storage is needed and the memory model of a GPU would help reduce latency for the application.</p>
 
