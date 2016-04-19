@@ -86,7 +86,8 @@
 <ul>
 <li>A parallel implementation to solve the Navier-Stokes differential equation that produces a significant speedup on the GPU in comparison to a CPU implementation.</li>
 <li>A simple and clear visual representation of this fluid simulation in real time.</li>
-<li>Graphs or timing analysis to show speedup from the sequential implementation.</li>
+<li>Graphs or timing analysis to show speedup from the sequential implementation.
+<strong>Update (04/19/16):</strong> We still think we can achieve the above goals effectively.</li>
 </ul>
 
 <p><strong>Hope To Achieve</strong></p>
@@ -94,12 +95,22 @@
 <ul>
 <li>A parallel CPU implementation of the algorithm.</li>
 <li>A detailed comparison between the CPU and GPU implementation with support of graphs and timing data.</li>
-<li>Modify the fluid simulator to take into account external, real time forces.</li>
+<li>Modify the fluid simulator to take into account external, real time forces.
+<strong>Update (04/19/16):</strong>
+</li>
+<li>We are still unsure of whether we will be able to implement a version parallel version of the algorithm for the CPU. At this point we might focus our efforts on comparing the CUDA version to a sequential implementation. We feel that this will help us achieve the best results we can using the GPU and also help us test and improve our code more thoroughly. </li>
 </ul>
 
 <p><strong>Demo</strong></p>
 
-<p>For the demo, we hope to showcase a few examples of visual fluid simulation and explain the speedup obtained because of using the GPU with support from analytical data we collect.</p>
+<p>For the demo, we hope to showcase a few examples of visual fluid simulation and explain the speedup obtained because of using the GPU with support from analytical data we collect.
+<strong>Update (04/19/16):</strong> At our demo, we hope to first show the following:</p>
+
+<ul>
+<li>An animation that uses the CUDA accelerated version of our fluid simulator.</li>
+<li>Graphs and statistics detailing the speedup achieved for different animations using the CUDA version as opposed to a sequential version.</li>
+<li>Graphs comparing GPU and CPU performance (if we implement the CPU version).</li>
+</ul>
 
 <h3>
 <a id="platform-choice" class="anchor" href="#platform-choice" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Platform Choice</h3>
@@ -109,7 +120,7 @@
 <p>These systems are a good choice for our fluid simulator since the GPU is the fastest one available and is well suited to a compute-intensive project due to high scope for parallelism. The i7 processor would be a good benchmark to analyze CPU performance and compare it with the GPU's performance.</p>
 
 <h3>
-<a id="updated-detailed-schedule" class="anchor" href="#updated-detailed-schedule" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Updated Detailed Schedule</h3>
+<a id="updated-detailed-schedule-041916" class="anchor" href="#updated-detailed-schedule-041916" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Updated Detailed Schedule (04/19/16)</h3>
 
 <table>
 <thead>
