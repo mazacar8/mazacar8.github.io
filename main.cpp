@@ -12,7 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include <GLUT/glut.h>
+#include "platformgl.h"
 
 #define VORDER 10
 #define CORDER 10

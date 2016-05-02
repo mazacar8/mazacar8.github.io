@@ -1,14 +1,14 @@
 
-EXECUTABLE := render
+EXECUTABLE := sim
 
-CU_FILES   := cudaRenderer.cu
+# CU_FILES   := cudaRenderer.cu
 
 CU_DEPS    :=
 
 CC_FILES   := main.cpp display.cpp benchmark.cpp refRenderer.cpp \
               noise.cpp ppm.cpp sceneLoader.cpp
 
-LOGS	   := logs
+LOGS	   := 
 
 ###########################################################
 
@@ -21,25 +21,17 @@ HOSTNAME=$(shell hostname)
 LIBS       :=
 FRAMEWORKS := 
 
-ifeq ($(HOSTNAME), latedays.andrew.cmu.edu)
-# Building on Latedays
-NVCCFLAGS=-O3 -m64 -arch compute_20
-LIBS += GL glut cudart
-LDFLAGS=-L/usr/local/cuda/lib64/ -lcudart
-else
 # Building on Linux
 NVCCFLAGS=-O3 -m64 -arch compute_20
 LIBS += GL glut cudart
 LDFLAGS=-L/usr/local/depot/cuda-6.5/lib64/ -lcudart
-endif
 
 LDLIBS  := $(addprefix -l, $(LIBS))
 LDFRAMEWORKS := $(addprefix -framework , $(FRAMEWORKS))
 
 NVCC=nvcc
 
-OBJS=$(OBJDIR)/main.o $(OBJDIR)/display.o $(OBJDIR)/benchmark.o $(OBJDIR)/refRenderer.o \
-     $(OBJDIR)/cudaRenderer.o $(OBJDIR)/noise.o $(OBJDIR)/ppm.o $(OBJDIR)/sceneLoader.o
+OBJS=$(OBJDIR)/main.o
 
 
 .PHONY: dirs clean
@@ -50,13 +42,13 @@ dirs:
 		mkdir -p $(OBJDIR)/
 
 clean:
-		rm -rf $(OBJDIR) *~ $(EXECUTABLE) $(LOGS)
+		rm -rf $(OBJDIR) *~ $(EXECUTABLE) 
 
 check:	default
 		./checker.pl
 
 $(EXECUTABLE): dirs $(OBJS)
-		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS) $(LDLIBS) $(LDFRAMEWORKS)
+		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDLIBS) $(LDFLAGS) $(LDFRAMEWORKS)
 
 $(OBJDIR)/%.o: %.cpp
 		$(CXX) $< $(CXXFLAGS) -c -o $@
