@@ -23,7 +23,7 @@ FRAMEWORKS :=
 
 # Building on Linux
 NVCCFLAGS=-O3 -m64 -arch compute_20
-LIBS += GL glut cudart
+LIBS += GL glut cudart GLU
 LDFLAGS=-L/usr/local/depot/cuda-6.5/lib64/ -lcudart
 
 LDLIBS  := $(addprefix -l, $(LIBS))
