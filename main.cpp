@@ -4,74 +4,76 @@
 #include <math.h>
 #include "platformgl.h"
 
-GLfloat xRotated, yRotated, zRotated;
-GLdouble radius=1;
-GLenum doubleBuffer;
+// http://www.lighthouse3d.com/tutorials/glut-tutorial/animation/
 
-static void
-Reshape(int x, int y)
-{
+void changeSize(int w, int h) {
 
-  if (y == 0 || x == 0) return;   
-    glMatrixMode(GL_PROJECTION);  
-    glLoadIdentity(); 
-    gluPerspective(39.0,(GLdouble)x/(GLdouble)y,0.6,21.0);
-    glMatrixMode(GL_MODELVIEW);
-    glViewport(0,0,x,y);
-}
+  // Prevent a divide by zero, when window is too short
+  // (you cant make a window of zero width).
+  if (h == 0)
+    h = 1;
 
-static void
-Draw(void)
-{
+  float ratio =  w * 1.0 / h;
 
-  glMatrixMode(GL_MODELVIEW);
-  // clear the drawing buffer.
-  glClear(GL_COLOR_BUFFER_BIT);
-  // clear the identity matrix.
+  // Use the Projection Matrix
+  glMatrixMode(GL_PROJECTION);
+
+  // Reset Matrix
   glLoadIdentity();
-  // traslate the draw by z = -4.0
-  // Note this when you decrease z like -8.0 the drawing will looks far , or smaller.
-  glTranslatef(0.0,0.0,-5.0);
-  // Red color used to draw.
-  glColor3f(0.9, 0.3, 0.2); 
-  // changing in transformation matrix.
-  // rotation about X axis
-  glRotatef(xRotated,1.0,0.0,0.0);
-  // rotation about Y axis
-  glRotatef(yRotated,0.0,1.0,0.0);
-  // rotation about Z axis
-  glRotatef(zRotated,0.0,0.0,1.0);
-  // scaling transfomation 
-  glScalef(1.0,1.0,1.0);
-  // built-in (glut library) function , draw you a sphere.
-  glutSolidSphere(radius,20,20);
-  // Flush buffers to screen
-   
-  glFlush();        
- 
+
+  // Set the viewport to be the entire window
+  glViewport(0, 0, w, h);
+
+  // Set the correct perspective.
+  gluPerspective(45.0f, ratio, 0.1f, 100.0f);
+
+  // Get Back to the Modelview
+  glMatrixMode(GL_MODELVIEW);
 }
 
-int
-main(int argc, char **argv)
-{
-  GLenum type;
+float angle = 0.0f;
 
+void renderScene(void) {
+
+  // Clear Color and Depth Buffers
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // Reset transformations
+  glLoadIdentity();
+  // Set the camera
+  gluLookAt(  0.0f, 0.0f, 10.0f,
+        0.0f, 0.0f,  0.0f,
+        0.0f, 1.0f,  0.0f);
+
+  glRotatef(angle, 0.0f, 1.0f, 0.0f);
+
+  glBegin(GL_TRIANGLES);
+    glVertex3f(-2.0f,-2.0f, 0.0f);
+    glVertex3f( 2.0f, 0.0f, 0.0);
+    glVertex3f( 0.0f, 2.0f, 0.0);
+  glEnd();
+
+  angle+=0.1f;
+
+  glutSwapBuffers();
+}
+
+int main(int argc, char **argv) {
+
+  // init GLUT and create window
   glutInit(&argc, argv);
-  //Args(argc, argv);
+  glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+  glutInitWindowPosition(100,100);
+  glutInitWindowSize(320,320);
+  glutCreateWindow("Lighthouse3D- GLUT Tutorial");
 
-  type = GLUT_RGB | GLUT_DEPTH;
-  type |= (doubleBuffer) ? GLUT_DOUBLE : GLUT_SINGLE;
-  glutInitDisplayMode(type);
-  glutInitWindowSize(350, 350);
-  glutCreateWindow("High Resolution Fluid Simulation");
-  xRotated = yRotated = zRotated = 30.0;
-  xRotated=43;
-  yRotated=50;
+  // register callbacks
+  glutDisplayFunc(renderScene);
+  glutReshapeFunc(changeSize);
+  glutIdleFunc(renderScene);
 
-  glutReshapeFunc(Reshape);
-  // glutKeyboardFunc(Key);
-  // glutSpecialFunc(SpecialKey);
-  glutDisplayFunc(Draw);
+  // enter GLUT event processing cycle
   glutMainLoop();
-  return 0;
+
+  return 1;
 }
