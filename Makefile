@@ -5,8 +5,7 @@ EXECUTABLE := sim
 
 CU_DEPS    :=
 
-CC_FILES   := main.cpp display.cpp benchmark.cpp refRenderer.cpp \
-              noise.cpp ppm.cpp sceneLoader.cpp
+CC_FILES   := main.cpp nv_seq.cpp
 
 LOGS	   := 
 
@@ -31,7 +30,7 @@ LDFRAMEWORKS := $(addprefix -framework , $(FRAMEWORKS))
 
 NVCC=nvcc
 
-OBJS=$(OBJDIR)/main.o
+OBJS=$(OBJDIR)/main.o $(OBJDIR)/nv_seq.o
 
 
 .PHONY: dirs clean
