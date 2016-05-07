@@ -60,7 +60,7 @@ typedef struct {
 // be stored in special "constant" memory on the GPU. (we didn't talk
 // about this type of memory in class, but constant memory is a fast
 // place to put read-only variables).
-__constant__ GlobalConstants cuConstRendererParams;
+__constant__ GlobalConstants gpuParams;
 
 __global__ void kernelAdvection(){
 
@@ -71,10 +71,10 @@ __global__ void kernelAdvection(){
 
     if(index_x >= 0 and index_x < gpuParams.length and index_y >= 0 or index_y < gpuParams.width){
 
-        old_x = round(index_x - gpuParams.temp_vel_x[index_y][index_x]*time_step_size);
-        old_y = round(index_y - gpuParams.temp_vel_y[index_y][index_x]*time_step_size);
+        old_x = round(index_x - gpuParams.temp_vel_x[index_y][index_x]*gpuParams.time_step_size);
+        old_y = round(index_y - gpuParams.temp_vel_y[index_y][index_x]*gpuParams.time_step_size);
 
-        if(old_x < LENGTH and old_x >= 0 and old_y < WIDTH and old_y >= 0 and particle[]){
+        if(old_x < LENGTH and old_x >= 0 and old_y < WIDTH and old_y >= 0 and gpuParams.particle[index_y][index_x]){
 
             gpuParams.temp_particle[index_y][index_x] = gpuParams.particle[old_y][old_x];
 
@@ -125,8 +125,8 @@ __global__ void kernelClearImage(float r, float g, float b, float a) {
     int imageX = blockIdx.x * blockDim.x + threadIdx.x;
     int imageY = blockIdx.y * blockDim.y + threadIdx.y;
 
-    int width = cuConstRendererParams.imageWidth;
-    int height = cuConstRendererParams.imageHeight;
+    int width = gpuParams.imageWidth;
+    int height = gpuParams.imageHeight;
 
     if (imageX >= width || imageY >= height)
         return;
@@ -137,7 +137,7 @@ __global__ void kernelClearImage(float r, float g, float b, float a) {
     // write to global memory: As an optimization, I use a float4
     // store, that results in more efficient code than if I coded this
     // up as four seperate fp32 stores.
-    *(float4*)(&cuConstRendererParams.imageData[offset]) = value;
+    *(float4*)(&gpuParams.imageData[offset]) = value;
 }
 
 __global__ void kernelAdvanceWaterCube(){
@@ -420,7 +420,7 @@ CudaRenderer::setup() {
 	params.imageWidth = image->width;
 	params.imageData = cudaDevice_imageData;
 
-    cudaMemcpyToSymbol(cuConstRendererParams, &params, sizeof(GlobalConstants));
+    cudaMemcpyToSymbol(gpuParams, &params, sizeof(GlobalConstants));
 }
 
 
