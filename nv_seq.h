@@ -37,7 +37,7 @@ typedef struct {
 
 	float*** divergence;
 
-	bool *particle;
+	bool*** particle;
 
 } FluidBox;
 

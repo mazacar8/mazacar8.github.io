@@ -4,19 +4,21 @@
 
 #include "platformgl.h" 
 #include <math.h>
+#include <omp.h>
 #include "nv_seq.h"
+#include <stdio.h>
 
 /* Global variables */
 char title[] = "3D Shapes with animation";
-GLfloat angleCube = 30.0f;     // Rotational angle for cube [NEW]
+GLfloat angleCube = 0.0f;     // Rotational angle for cube [NEW]
 int refreshMills = 15;        // refresh interval in milliseconds [NEW]
-GLfloat camera_angle = 30.0f;
+GLfloat camera_angle = 0.0f;
 
-FluidBox *box = FluidBoxCreate(10, 10, 10, refreshMills/1000.0);
+FluidBox *box = FluidBoxCreate(100, 100, 100, refreshMills/1000.0);
 
 /* Initialize OpenGL Graphics */
 void initGL() {
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Set background color to black and opaque
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // Set background color to black and opaque
 	glClearDepth(1.0f);                   // Set background depth to farthest
 	glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
 	glEnable(GL_COLOR_MATERIAL);
@@ -29,26 +31,26 @@ void initGL() {
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // Nice perspective corrections
 }
 
-//https://gist.github.com/strife25/803118
-void drawFilledCircle(GLdouble x, GLdouble y, GLdouble z, GLfloat radius){
-	int i;
-	int triangleAmount = 24; //# of triangles used to draw circle
+// //https://gist.github.com/strife25/803118
+// void drawFilledCircle(GLdouble x, GLdouble y, GLdouble z, GLfloat radius){
+// 	int i;
+// 	int triangleAmount = 24; //# of triangles used to draw circle
 
-	//GLfloat radius = 0.8f; //radius
-	GLfloat twicePi = 2.0f * M_PI;
+// 	//GLfloat radius = 0.8f; //radius
+// 	GLfloat twicePi = 2.0f * M_PI;
 
-	glBegin(GL_TRIANGLE_FAN);
-	glColor3f(0.0f, 0.7f, 0.8f);
-	glVertex3f(x, y, z); // center of circle
-	for(i = 0; i <= triangleAmount;i++) { 
-		glVertex2f(
-							x + (radius * cos(i *  twicePi / triangleAmount)), 
-				y + (radius * sin(i * twicePi / triangleAmount))
-		);
-	}
-	glColor3f(0.0f, 0.0f, 0.0f);
-	glEnd();
-}
+// 	glBegin(GL_TRIANGLE_FAN);
+// 	glColor3f(0.0f, 0.7f, 0.8f);
+// 	glVertex3f(x, y, z); // center of circle
+// 	for(i = 0; i <= triangleAmount;i++) { 
+// 		glVertex2f(
+// 							x + (radius * cos(i *  twicePi / triangleAmount)), 
+// 				y + (radius * sin(i * twicePi / triangleAmount))
+// 		);
+// 	}
+// 	glColor3f(0.0f, 0.0f, 0.0f);
+// 	glEnd();
+// }
 
 // void draw() {
 
@@ -78,6 +80,28 @@ void drawFilledCircle(GLdouble x, GLdouble y, GLdouble z, GLfloat radius){
 // 	}
 // 	glEnd();
 // }
+
+
+void drawParticle(int i, int j, int k){
+
+ 	float half_length = 1.0/(box->length);
+
+ 	GLfloat x = -1.0 + 2.0*i/(box->depth);
+ 	GLfloat y = -1.0 + 2.0*j/(box->width);
+ 	GLfloat z = -1.0 + 2.0*k/(box->length);
+
+ 	glBegin(GL_QUADS);
+
+ 		glColor3f(0.4f,0.84f,0.91f);
+ 		glVertex3f(x-half_length,y,z-half_length);
+ 		glVertex3f(x-half_length,y,z+half_length);
+ 		glVertex3f(x+half_length,y,z-half_length);
+ 		glVertex3f(x+half_length,y,z+half_length);
+
+ 	glEnd();
+
+
+}
 
 /* Handler for window-repaint event. Called back when the window first appears and
 whenever the window needs to be re-painted. */
@@ -109,15 +133,16 @@ void display() {
 	glRotatef(-camera_angle, 0.0f, 0.0f, 1.0f);
 
 	glTranslatef(0.0f, 0.0f, -7.0f);  // Move right and into the screen
-	glRotatef(angleCube, 0.0f, 1.0f, 0.0f);  
+	glRotatef(angleCube, 0.0f, 1.0f, 0.0f); 
+	glPushMatrix(); 
 	glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
-	// glColor3f(0.5f, 0.0f, 0.8f);
+	glColor3f(1.0f, 1.0f, 1.0f);
 	glBegin(GL_QUADS);                // Begin drawing the color cube with 6 quads
 		// Top face (y = 1.0f)
 		// Define vertices in counter-clockwise (CCW) order with normal pointing out
 		// glColor3f(0.0f, 1.0f, 0.0f);     // Green
-			glNormal3f(0.0f, 1.0f, 0.0f);
+		glNormal3f(0.0f, 1.0f, 0.0f);
 		glVertex3f( 1.0f, 1.0f, -1.0f);
 		glVertex3f(-1.0f, 1.0f, -1.0f);
 		glVertex3f(-1.0f, 1.0f,  1.0f);
@@ -162,7 +187,25 @@ void display() {
 		glVertex3f(1.0f,  1.0f,  1.0f);
 		glVertex3f(1.0f, -1.0f,  1.0f);
 		glVertex3f(1.0f, -1.0f, -1.0f);
-	glEnd();  
+	glEnd();
+	glPopMatrix();
+
+	//#pragma omp parallel for
+	for(int i = 0; i < box->depth; i++){
+
+		//#pragma omp parallel for
+		for(int j = 0; j < box->width; j++){
+
+			//#pragma omp parallel for
+			for(int k = 0; k < box->length; k++){
+
+				if(box->particle[i][j][k]){
+					drawParticle(i,j,k);
+				}
+			}
+		}
+
+	}
 
 	glutSwapBuffers();  // Swap the front and back frame buffers (double buffering)
 
@@ -170,7 +213,6 @@ void display() {
 
 void wrapper() {
 
-	timeStep(box);
 	display();
 
 }
@@ -180,9 +222,11 @@ void timer(int value) {
 
 	glutPostRedisplay();      // Post re-paint request to activate display()
 
-	camera_angle += 0.5;
-	if(camera_angle > 360)
-		camera_angle -= 360;
+	timeStep(box);
+
+	// camera_angle += 0.5;
+	// if(camera_angle > 360)
+	// 	camera_angle -= 360;
 
 	glutTimerFunc(refreshMills, timer, 0); // next timer call milliseconds later
 

@@ -18,17 +18,6 @@ FluidBox *FluidBoxCreate(int length, int width, int depth, float ts) {
 
 	box->time_step_size = ts;
 
-	box->particle = new bool [box->size];
-
-	for(int i = 0; i < box->size; i += 1) {
-
-		if(i < box->numParticles)
-			box->particle[i] = true;
-
-		else
-			box->particle[i] = false;
-
-	}
 
    box->vel_x = new float**[depth];
    box->temp_vel_x = new float**[depth];
@@ -46,6 +35,7 @@ FluidBox *FluidBoxCreate(int length, int width, int depth, float ts) {
    box->grad_x = new float**[depth];
    box->grad_y = new float**[depth];
    box->grad_z = new float**[depth];
+   box->particle = new bool**[depth];
 
    for (int i = 0; i < depth; ++i) {
    
@@ -65,6 +55,7 @@ FluidBox *FluidBoxCreate(int length, int width, int depth, float ts) {
    		box->grad_x[i] = new float*[width];
    		box->grad_y[i] = new float*[width];
    		box->grad_z[i] = new float*[width];
+   		box->particle[i] = new bool*[width];
 
    		for (int j = 0; j < width; ++j){
       		box->vel_x[i][j] = new float[length]();
@@ -83,6 +74,16 @@ FluidBox *FluidBoxCreate(int length, int width, int depth, float ts) {
       		box->grad_x[i][j] = new float[length]();
    			box->grad_y[i][j] = new float[length]();
    			box->grad_z[i][j] = new float[length]();
+   			box->particle[i][j] = new bool[length];
+
+   			if(j < width/2){
+
+	   			for(int k = 0; k < length; ++k){
+
+	   				box->particle[i][j][k] = true;
+
+	   			}
+	   		}
       	}
 
     }
@@ -150,7 +151,7 @@ void advectCube(FluidBox *box) {
 
 				if(old_index < box->size and old_index > 0){
 
-					if(box->particle[index]){
+					if(box->particle[i][j][k]){
 
 						box->temp_vel_x[i][j][k] = box->vel_x[i][j][k];
 						box->vel_x[i][j][k] = box->vel_x[old_i][old_j][old_k];
@@ -159,7 +160,7 @@ void advectCube(FluidBox *box) {
 						box->temp_vel_z[i][j][k] = box->vel_z[i][j][k];
 						box->vel_z[i][j][k] = box->vel_z[old_i][old_j][old_k];
 
-						box->particle[index] = box->particle[old_index];
+						box->particle[i][j][k] = box->particle[old_i][old_j][old_k];
 
 					}
 					
