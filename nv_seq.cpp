@@ -4,49 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-
-#define FILL_LEVEL 0.75
-#define DIFF_ITER 50
-#define IMPACT_RADIUS 3
-
-typedef struct {
-
-	int length;
-	int width;
-	int depth;
-
-	float time_step_size;
-	float diff_const;
-
-	int numParticles;
-	int size;
-
-	float*** vel_x;
-	float*** vel_y;
-	float*** vel_z;
-
-	float*** temp_vel_x;
-	float*** temp_vel_y;
-	float*** temp_vel_z;
-
-	float*** pre_x;
-	float*** pre_y;
-	float*** pre_z;
-
-	float*** temp_pre_x;
-	float*** temp_pre_y;
-	float*** temp_pre_z;
-
-	float*** grad_x;
-	float*** grad_y;
-	float*** grad_z;
-
-	float*** divergence;
-
-	bool *particle;
-
-} FluidBox;
-
+#include "nv_seq.h"
 
 FluidBox *FluidBoxCreate(int length, int width, int depth, float ts) {
 
@@ -113,13 +71,13 @@ FluidBox *FluidBoxCreate(int length, int width, int depth, float ts) {
       		box->temp_vel_x[i][j] = new float[length]();
       		box->vel_y[i][j] = new float[length]();
       		box->temp_vel_y[i][j] = new float[length]();
-      		box->vel_x[i][j] = new float[length]();
+      		box->vel_z[i][j] = new float[length]();
       		box->temp_vel_z[i][j] = new float[length]();
       		box->pre_x[i][j] = new float[length]();
       		box->temp_pre_x[i][j] = new float[length]();
       		box->pre_y[i][j] = new float[length]();
       		box->temp_pre_y[i][j] = new float[length]();
-      		box->pre_x[i][j] = new float[length]();
+      		box->pre_z[i][j] = new float[length]();
       		box->temp_pre_z[i][j] = new float[length]();
       		box->divergence[i][j] = new float[length]();
       		box->grad_x[i][j] = new float[length]();
@@ -190,18 +148,21 @@ void advectCube(FluidBox *box) {
 
 				old_index = old_k + (length * old_j) + (length * width * old_i);
 
-				if(index < box->size)
-					box->particle[index] = box->particle[old_index];
+				if(old_index < box->size and old_index > 0){
 
-				if(box->particle[index]){
+					if(box->particle[index]){
 
-					box->temp_vel_x[index] = box->vel_x[index];
-					box->vel_x[index] = box->vel_x[old_index];
-					box->temp_vel_y[index] = box->vel_y[index];
-					box->vel_y[index] = box->vel_y[old_index];
-					box->temp_vel_z[index] = box->vel_z[index];
-					box->vel_z[index] = box->vel_z[old_index];
+						box->temp_vel_x[i][j][k] = box->vel_x[i][j][k];
+						box->vel_x[i][j][k] = box->vel_x[old_i][old_j][old_k];
+						box->temp_vel_y[i][j][k] = box->vel_y[i][j][k];
+						box->vel_y[i][j][k] = box->vel_y[old_i][old_j][old_k];
+						box->temp_vel_z[i][j][k] = box->vel_z[i][j][k];
+						box->vel_z[i][j][k] = box->vel_z[old_i][old_j][old_k];
 
+						box->particle[index] = box->particle[old_index];
+
+					}
+					
 				}
 
 			}
@@ -218,17 +179,17 @@ void diffuseCube(FluidBox *box) {
 
 	float sumx, sumy, sumz;
 
-	for(int i = 0; i < DIFF_ITER; i++) {
+	for(int iter = 0; iter < DIFF_ITER; iter++) {
 
-		memcpy((void *)box->temp_vel_x, (void *) box->vel_x, (std::size_t) box->size);
-		memcpy((void *)box->temp_vel_y, (void *) box->vel_y, (std::size_t) box->size);
-		memcpy((void *)box->temp_vel_z, (void *) box->vel_z, (std::size_t) box->size);
+		copy3dArray(box->temp_vel_x,box->vel_x,box->length,box->width,box->depth);
+		copy3dArray(box->temp_vel_y,box->vel_y,box->length,box->width,box->depth);
+		copy3dArray(box->temp_vel_z,box->vel_z,box->length,box->width,box->depth);
 
 		for (int i = 1; i < box->depth - 1; i++){
 
 			for (int j = 1; j < box->width - 1; j++) {
 
-				for (int k = 1; j < box->length - 1; k++) {
+				for (int k = 1; k < box->length - 1; k++) {
 
 					sumx = box->temp_vel_x[i-1][j][k] + box->temp_vel_x[i+1][j][k] +
 						   box->temp_vel_x[i][j-1][k] + box->temp_vel_x[i][j+1][k] +
@@ -255,22 +216,22 @@ void diffuseCube(FluidBox *box) {
 
 }
 
-void addForce(FluidBox *box, int x, int y, int z,
-	float vel_x, float vel_y, float vel_z){
+// void addForce(FluidBox *box, int x, int y, int z,
+// 	float vel_x, float vel_y, float vel_z){
 
-	addVelocity(box,x,y,z,vel_x,vel_y,vel_z);
+// 	addVelocity(box,x,y,z,vel_x,vel_y,vel_z);
 
-	for(int i = 0; i < IMPACT_RADIUS; i++) {
-		for(int j = 0; j < IMPACT_RADIUS; j++) {
-			for(int k = 0; k < IMPACT_RADIUS; k++) {
+// 	for(int i = 0; i < IMPACT_RADIUS; i++) {
+// 		for(int j = 0; j < IMPACT_RADIUS; j++) {
+// 			for(int k = 0; k < IMPACT_RADIUS; k++) {
 
-				addVelocity(box,x-k,y-j,z-i,vel_x, vel_y, vel_z);
-				addVelocity(box,x+k,y+j,z+i,vel_x, vel_y, vel_z);
-			}
-		}
-	}
+// 				addVelocity(box,x-k,y-j,z-i,vel_x, vel_y, vel_z);
+// 				addVelocity(box,x+k,y+j,z+i,vel_x, vel_y, vel_z);
+// 			}
+// 		}
+// 	}
 
-}
+// }
 
 void computeDivergence(FluidBox *box) {
 
@@ -278,7 +239,7 @@ void computeDivergence(FluidBox *box) {
 
 		for (int j = 1; j < box->width - 1; j++) {
 
-			for (int k = 1; j < box->length - 1; k++) {
+			for (int k = 1; k < box->length - 1; k++) {
 
 				box->divergence[i][j][k] = (box->vel_z[i+1][j][k] - box->vel_z[i-1][j][k] +
 					   box->vel_y[i][j-1][k] - box->vel_y[i][j+1][k] +
@@ -296,24 +257,23 @@ void projectBox(FluidBox *box){
 	float alpha = (box->length) * (box->width);
 	float beta = 6;
 	computeDivergence(box);
-
 	float sumx, sumy, sumz;
 
-	memset(box->pre_x,0,box->size);
-	memset(box->pre_y,0,box->size);
-	memset(box->pre_z,0,box->size);
+	setZero3d(box->pre_x,box->length,box->width,box->depth);
+	setZero3d(box->pre_y,box->length,box->width,box->depth);
+	setZero3d(box->pre_z,box->length,box->width,box->depth);
 
-	for(int i = 0; i < DIFF_ITER; i++) {
+	for(int iter = 0; iter < DIFF_ITER; iter++) {
 
-		memcpy((void *)box->temp_pre_x, (void *) box->pre_x, (std::size_t) box->size);
-		memcpy((void *)box->temp_pre_y, (void *) box->pre_y, (std::size_t) box->size);
-		memcpy((void *)box->temp_pre_z, (void *) box->pre_z, (std::size_t) box->size);
+		copy3dArray(box->temp_pre_x,box->pre_x,box->length,box->width,box->depth);
+		copy3dArray(box->temp_pre_y,box->pre_y,box->length,box->width,box->depth);
+		copy3dArray(box->temp_pre_z,box->pre_z,box->length,box->width,box->depth);
 
 		for (int i = 1; i < box->depth - 1; i++){
 
 			for (int j = 1; j < box->width - 1; j++) {
 
-				for (int k = 1; j < box->length - 1; k++) {
+				for (int k = 1; k < box->length - 1; k++) {
 
 					sumx = box->temp_pre_x[i-1][j][k] + box->temp_pre_x[i+1][j][k] +
 						   box->temp_pre_x[i][j-1][k] + box->temp_pre_x[i][j+1][k] +
@@ -340,13 +300,45 @@ void projectBox(FluidBox *box){
 
 }
 
+void setZero3d(float*** array, int length, int width, int depth){
+
+	for(int i = 0; i < depth; i++){
+
+		for(int j = 0; j < width; j++){
+
+			for(int k = 0; k < length; k++){
+
+				array[i][j][k] = 0.0f;
+			}
+		}
+			
+		
+	}
+
+}
+
+void copy3dArray(float*** dst,float*** src, int length, int width, int depth){
+
+	for(int i = 0; i < depth; i++){
+
+		for(int j = 0; j < width; j++){
+
+			for(int k = 0; k < length; k++)
+				dst[i][j][k] = src[i][j][k];
+		}
+			
+		
+	}
+
+}
+
 void accountForGradient(FluidBox *box) {
 
 	for (int i = 1; i < box->depth - 1; i++){
 
 		for (int j = 1; j < box->width - 1; j++) {
 
-			for (int k = 1; j < box->length - 1; k++) {
+			for (int k = 1; k < box->length - 1; k++) {
 
 				box->grad_x[i][j][k] = (box->pre_x[i+1][j][k] - box->pre_x[i-1][j][k])/2;
 				box->grad_y[i][j][k] = (box->pre_y[j+1][j][k] - box->pre_y[j-1][j][k])/2;
@@ -367,12 +359,12 @@ void accountForGradient(FluidBox *box) {
 
 }
 
-void timeStep(FluidBox *box, int mouseX, int mouseY, int mouseZ, 
-	float vel_x, float vel_y, float vel_z){
+void timeStep(FluidBox *box){
+
 
 	advectCube(box);
 	diffuseCube(box);
-	addForce(box,mouseX,mouseY,mouseZ,vel_x,vel_y,vel_z);
+	// addForce(box,mouseX,mouseY,mouseZ,vel_x,vel_y,vel_z);
 	projectBox(box);
 	accountForGradient(box);
 
