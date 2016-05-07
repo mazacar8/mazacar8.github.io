@@ -62,6 +62,64 @@ typedef struct {
 // place to put read-only variables).
 __constant__ GlobalConstants cuConstRendererParams;
 
+__global__ void kernelAdvection(){
+
+    int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int index_y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    int old_x, old_y;
+
+    if(index_x >= 0 and index_x < gpuParams.length and index_y >= 0 or index_y < gpuParams.width){
+
+        old_x = round(index_x - gpuParams.temp_vel_x[index_y][index_x]*time_step_size);
+        old_y = round(index_y - gpuParams.temp_vel_y[index_y][index_x]*time_step_size);
+
+        if(old_x < LENGTH and old_x >= 0 and old_y < WIDTH and old_y >= 0 and particle[]){
+
+            gpuParams.temp_particle[index_y][index_x] = gpuParams.particle[old_y][old_x];
+
+            if(gpuParams.temp_particle[index_y][index_x]){
+                gpuParams.temp_vel_x[index_y][index_x] = gpuParams.vel_x[old_y][old_x];
+                gpuParams.vel_x[index_y][index_x] = gpuParams.vel_x[old_y][old_x];
+                gpuParams.temp_vel_y[index_y][index_x] = gpuParams.vel_y[old_y][old_x];
+                gpuParams.vel_y[index_y][index_x] = gpuParams.vel_y[old_y][old_x];
+            }
+        }
+
+        __syncthreads();
+
+        gpuParams.particle[index_y][index_x] = gpuParams.temp_particle[index_y][index_x];
+    }
+}
+
+__global__ void kernelDiffusion(){
+    int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int index_y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if(index_x >= 1 and index_x < gpuParams.length - 1 and index_y >= 1 or index_y < gpuParams.width - 1){
+        float alpha = (gpuParams.length) * (gpuParams.width)/(gpuParams.time_step_size * gpuParams.diff_const);
+        float beta = alpha + 4;
+
+        float sumx, sumy;
+
+        for(int iter = 0; iter < DIFF_ITER; iter++) {
+
+            gpuParams.temp_vel_y[index_y][index_x] = gpuParams.vel_y[index_y][index_x];
+            gpuParams.temp_vel_y[index_y][index_x] = gpuParams.vel_y[index_y][index_x];
+
+            sumx = gpuParams.temp_vel_x[index_y - 1][index_x] + gpuParams.temp_vel_x[index_y+1][index_x] +
+                   gpuParams.temp_vel_x[index_y][index_x - 1] + gpuParams.temp_vel_x[index_y][index_x + 1];
+            sumy = gpuParams.temp_vel_y[index_y - 1][index_x] + gpuParams.temp_vel_y[index_y+1][index_x] +
+                   gpuParams.temp_vel_y[index_y][index_x - 1] + gpuParams.temp_vel_y[index_y][index_x + 1];
+
+            gpuParams.vel_x[index_y][index_x] = (sumx + alpha*gpuParams.temp_vel_x[index_y][index_x])/beta;
+            gpuParams.vel_y[index_y][index_x] = (sumy + alpha*gpuParams.temp_vel_y[index_y][index_x])/beta;
+
+            __syncthreads();
+        }
+    }
+}
+
 __global__ void kernelClearImage(float r, float g, float b, float a) {
 
     int imageX = blockIdx.x * blockDim.x + threadIdx.x;
@@ -369,15 +427,19 @@ CudaRenderer::setup() {
 void
 CudaRenderer::advanceAnimation() {
      // 256 threads per block is a healthy number
-    dim3 blockDim(256, 1);
-    dim3 gridDim((42 + blockDim.x - 1) / blockDim.x);
+    dim3 blockDim(BLOCKDIM, BLOCKDIM);
+    dim3 gridDim((LENGTH + blockDim.x - 1)/blockDim.x, (
+                  WIDTH + blockDim.y - 1)/blockDim.y);
 
-    if(sceneName == WATER_CUBE) {
-    	kernelAdvanceWaterCube<<<gridDim, blockDim>>>();
-    }
+    kernelAdvection<<<gridDim, blockDim>>>();
+    cudaThreadSynchronize();
+    kernelDiffusion<<<gridDim, blockDim>>>();
+    cudaThreadSynchronize();
+    kernelProjection<<<gridDim, blockDim>>>();
+    cudaThreadSynchronize();
+    kernelGradientComputation<<<gridDim, blockDim>>>();
     cudaThreadSynchronize();
 }
-
 void
 CudaRenderer::render() {
 
