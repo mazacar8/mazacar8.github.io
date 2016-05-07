@@ -1,6 +1,6 @@
 #include <algorithm>
 
-#include "circleRenderer.h"
+#include "cudaRenderer.h"
 #include "cycleTimer.h"
 #include "image.h"
 #include "platformgl.h"
@@ -17,7 +17,7 @@ static struct {
     bool pauseSim;
     double lastFrameTime;
 
-    CircleRenderer* renderer;
+    CudaRenderer* renderer;
 
 } gDisplay;
 
@@ -139,7 +139,7 @@ renderPicture() {
 }
 
 void
-startRendererWithDisplay(CircleRenderer* renderer) {
+startRendererWithDisplay(CudaRenderer* renderer) {
 
     // setup the display
 
@@ -157,7 +157,7 @@ startRendererWithDisplay(CircleRenderer* renderer) {
 
     glutInitWindowSize(gDisplay.width, gDisplay.height);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
-    glutCreateWindow("CMU 15-418 Assignment 2 - Circle Renderer");
+    glutCreateWindow("15418 - CUDA Accelerated Fluid Simulator");
     glutDisplayFunc(handleDisplay);
     glutKeyboardFunc(handleKeyPress);
     glutMainLoop();

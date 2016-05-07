@@ -1,11 +1,11 @@
 
 EXECUTABLE := sim
 
-# CU_FILES   := cudaRenderer.cu
+CU_FILES   := cudaRenderer.cu
 
 CU_DEPS    :=
 
-CC_FILES   := main.cpp nv_seq.cpp
+CC_FILES   := main.cpp nv_seq2d.cpp
 
 LOGS	   := 
 
@@ -30,7 +30,8 @@ LDFRAMEWORKS := $(addprefix -framework , $(FRAMEWORKS))
 
 NVCC=nvcc
 
-OBJS=$(OBJDIR)/main.o $(OBJDIR)/nv_seq.o
+OBJS=$(OBJDIR)/main.o $(OBJDIR)/nv_seq2d.o $(OBJDIR)/display.o $(OBJDIR)/cudaRenderer.o \
+	$(OBJDIR)/sceneLoader.o
 
 
 .PHONY: dirs clean
@@ -49,7 +50,7 @@ check:	default
 $(EXECUTABLE): dirs $(OBJS)
 		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDLIBS) $(LDFLAGS) $(LDFRAMEWORKS)
 
-$(OBJDIR)/%.o: %.cpp nv_seq.h
+$(OBJDIR)/%.o: %.cpp nv_seq2d.h
 		$(CXX) $< $(CXXFLAGS) -c -o $@
 
 $(OBJDIR)/%.o: %.cu

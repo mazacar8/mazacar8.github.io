@@ -78,6 +78,7 @@ FluidBox *FluidBoxCreate(int length, int width, int depth, float ts) {
 
    			if(j < width/2){
 
+   				//#pragma omp parallel for
 	   			for(int k = 0; k < length; ++k){
 
 	   				box->particle[i][j][k] = true;
@@ -139,6 +140,7 @@ void advectCube(FluidBox *box) {
 
 		for(int j = 0; j < box->width; j++){
 
+			//#pragma omp parallel for
 			for(int k = 0; k < box->length; k++){
 
 				index = k + (length * j) + (length * width * i);
@@ -190,6 +192,7 @@ void diffuseCube(FluidBox *box) {
 
 			for (int j = 1; j < box->width - 1; j++) {
 
+				//#pragma omp parallel for
 				for (int k = 1; k < box->length - 1; k++) {
 
 					sumx = box->temp_vel_x[i-1][j][k] + box->temp_vel_x[i+1][j][k] +
@@ -240,6 +243,7 @@ void computeDivergence(FluidBox *box) {
 
 		for (int j = 1; j < box->width - 1; j++) {
 
+			//#pragma omp parallel for
 			for (int k = 1; k < box->length - 1; k++) {
 
 				box->divergence[i][j][k] = (box->vel_z[i+1][j][k] - box->vel_z[i-1][j][k] +
@@ -274,6 +278,7 @@ void projectBox(FluidBox *box){
 
 			for (int j = 1; j < box->width - 1; j++) {
 
+				//#pragma omp parallel for
 				for (int k = 1; k < box->length - 1; k++) {
 
 					sumx = box->temp_pre_x[i-1][j][k] + box->temp_pre_x[i+1][j][k] +
@@ -307,6 +312,7 @@ void setZero3d(float*** array, int length, int width, int depth){
 
 		for(int j = 0; j < width; j++){
 
+			//#pragma omp parallel for
 			for(int k = 0; k < length; k++){
 
 				array[i][j][k] = 0.0f;
@@ -324,6 +330,7 @@ void copy3dArray(float*** dst,float*** src, int length, int width, int depth){
 
 		for(int j = 0; j < width; j++){
 
+			//#pragma omp parallel for
 			for(int k = 0; k < length; k++)
 				dst[i][j][k] = src[i][j][k];
 		}
@@ -339,6 +346,7 @@ void accountForGradient(FluidBox *box) {
 
 		for (int j = 1; j < box->width - 1; j++) {
 
+			//#pragma omp parallel for
 			for (int k = 1; k < box->length - 1; k++) {
 
 				box->grad_x[i][j][k] = (box->pre_x[i+1][j][k] - box->pre_x[i-1][j][k])/2;
@@ -364,10 +372,14 @@ void timeStep(FluidBox *box){
 
 
 	advectCube(box);
+	// printf("Advected\n");
 	diffuseCube(box);
+	// printf("Diffused\n");
 	// addForce(box,mouseX,mouseY,mouseZ,vel_x,vel_y,vel_z);
 	projectBox(box);
+	// printf("Projected\n");
 	accountForGradient(box);
+	// printf("Done\n");
 
 }
 
