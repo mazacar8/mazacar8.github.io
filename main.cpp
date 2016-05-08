@@ -67,6 +67,7 @@ void drawParticle(int i, int j){
 
  	glBegin(GL_POINTS);
 
+ 		if(i)
  		glColor3f(0.4f,0.84f,0.91f);
  		glVertex2f(x,y);
  		glColor3f(1.0f,1.0f,1.0f);

@@ -52,9 +52,9 @@ FluidBox *FluidBoxCreate2D(int length, int width, float ts) {
 
 	int ctr = 0;
 
-	while(ctr < box->numParticles){
-		box->particle[ctr/length][ctr%length] = 1;
-				ctr++;
+	while(ctr < box->numParticles * FILL_LEVEL){
+		box->particle[ctr/length][ctr%length] = true;
+		ctr++;
 	}
 
 	return box;
@@ -185,6 +185,17 @@ void addForce2D(FluidBox *box){
 		}
 	}
 
+	// for (int i = 1; i < box->length - 1; i++){
+
+	// 	for (int j = 1; j < box->width - 1; j++) {
+
+	// 		box->vel_x[i][j] = 3;
+	// 		box->vel_y[i][j] = 3;
+
+	// 	}
+	// }
+
+
 }
 
 void computeDivergence2D(FluidBox *box) {
@@ -276,7 +287,7 @@ void accountForGradient2D(FluidBox *box) {
 		for (int j = 1; j < box->width - 1; j++) {
 
 			box->grad_x[i][j] = (box->pre_x[i+1][j] - box->pre_x[i-1][j])/2;
-			box->grad_y[i][j] = (box->pre_y[j+1][j] - box->pre_y[j-1][j])/2;
+			box->grad_y[i][j] = (box->pre_y[i][j+1] - box->pre_y[i][j-1])/2;
 
 			box->temp_vel_x[i][j] -= box->grad_x[i][j];
 			box->temp_vel_y[i][j] -= box->grad_y[i][j];
