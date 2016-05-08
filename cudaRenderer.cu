@@ -7,6 +7,7 @@
 #include <string>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <driver_functions.h>
 #include <iostream>
 
 #include "cudaRenderer.h"
@@ -177,12 +178,11 @@ __global__ void kernelGradientComputation(){
 __device__ __inline__ void
 shadePixel(float4* imgPtr){
 
-    float4 color;
-    color.x = 0.0f;
-    color.y = 0.0f;
-    color.z = 1.0f;
-    color.w = 0.0f;
-
+    float r = 1.f;
+    float g = 0.f;
+    float b = 0.f;
+    float a = 1.f;    
+    float4 color = make_float4(r, g, b, a);
     *imgPtr = color;
 
 }
@@ -195,8 +195,9 @@ __global__ void kernelRender(){
     if(index_x < gpuParams.width and index_y < gpuParams.length){
 
         int imageWidth = gpuParams.imageWidth;
+        int offset = 4 * (index_y * imageWidth + index_x);
 
-        float4* imgPtr = (float4*) (&gpuParams.imageData[4 * (index_y * imageWidth + index_x)]);
+        float4* imgPtr = (float4 *) (&gpuParams.imageData[offset]);
 
         if(gpuParams.particle[index_x][index_y]){
             shadePixel(imgPtr);
@@ -333,6 +334,7 @@ CudaRenderer::allocOutputImage(int width, int height) {
     if (image)
         delete image;
     image = new Image(width, height);
+
 }
 
 const Image*

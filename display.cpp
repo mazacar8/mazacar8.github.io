@@ -67,8 +67,6 @@ handleDisplay() {
     // normal openGL rendering
     glRasterPos2i(0, 0);
 
-    printf("%p\n",img);
-
     glDrawPixels(width, height, GL_RGBA, GL_FLOAT, img->data);
 
     double currentTime = CycleTimer::currentSeconds();
@@ -109,7 +107,7 @@ handleKeyPress(unsigned char key, int x, int y) {
 
 // renderPicture --
 //
-// At the reall work is done here, not in the display handler
+// At the real work is done here, not in the display handler
 void
 renderPicture() {
 

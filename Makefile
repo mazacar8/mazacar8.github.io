@@ -5,7 +5,7 @@ CU_FILES   := cudaRenderer.cu
 
 CU_DEPS    :=
 
-CC_FILES   := main.cpp nv_seq2d.cpp
+CC_FILES   := main.cpp nv_seq2d.cpp display.cpp 
 
 LOGS	   := 
 
@@ -14,7 +14,7 @@ LOGS	   :=
 ARCH=$(shell uname | sed -e 's/-.*//g')
 OBJDIR=objs
 CXX=g++ -m64
-CXXFLAGS=-O3 -Wall -g -fopenmp
+CXXFLAGS=-O3 -Wall -g
 HOSTNAME=$(shell hostname)
 
 LIBS       :=
@@ -31,7 +31,6 @@ LDFRAMEWORKS := $(addprefix -framework , $(FRAMEWORKS))
 NVCC=nvcc
 
 OBJS=$(OBJDIR)/main.o $(OBJDIR)/nv_seq2d.o $(OBJDIR)/display.o $(OBJDIR)/cudaRenderer.o \
-
 
 .PHONY: dirs clean
 

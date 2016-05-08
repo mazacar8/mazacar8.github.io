@@ -7,7 +7,7 @@
 
 #include "nv_seq2d.h"
 
-#define BLOCKDIM 48
+#define BLOCKDIM 24
 
 struct Image;
 
@@ -21,33 +21,6 @@ private:
 
     Image* image;
     SceneName sceneName;
-
-    // int length;
-    // int width;
-
-    // float time_step_size;
-    // float diff_const;
-
-    // int numParticles;
-    // int size;      
-
-    // float** vel_x;
-    // float** vel_y;
-
-    // float** temp_vel_x;
-    // float** temp_vel_y;
-
-    // float** pre_x;
-    // float** pre_y;
-
-    // float** temp_pre_x;
-    // float** temp_pre_y;
-
-    // float** grad_x;
-    // float** grad_y;
-
-    // float** divergence;
-    // bool** particle;
 
     float* cudaDevice_imageData;   
 
@@ -91,11 +64,7 @@ public:
 
     void render();
 
-    // void shadePixel(
-    //     int circleIndex,
-    //     float pixelCenterX, float pixelCenterY,
-    //     float px, float py, float pz,
-    //     float* pixelData);
+    void shadePixel(float* imgPtr);
 };
 
 
