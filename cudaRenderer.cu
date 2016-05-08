@@ -19,37 +19,37 @@
 
 typedef struct {
 
-	SceneName sceneName;
+    SceneName sceneName;
 
-	int length;
-	int width;
+    int length;
+    int width;
 
-	float time_step_size;
-	float diff_const;
+    float time_step_size;
+    float diff_const;
 
-	int numParticles;
-	int size;      
+    int numParticles;
+    int size;      
 
-	float** vel_x;
-	float** vel_y;
+    float** vel_x;
+    float** vel_y;
 
-	float** temp_vel_x;
-	float** temp_vel_y;
+    float** temp_vel_x;
+    float** temp_vel_y;
 
-	float** pre_x;
-	float** pre_y;
+    float** pre_x;
+    float** pre_y;
 
-	float** temp_pre_x;
-	float** temp_pre_y;
+    float** temp_pre_x;
+    float** temp_pre_y;
 
-	float** grad_x;
-	float** grad_y;
+    float** grad_x;
+    float** grad_y;
 
-	float** divergence;
-	bool** particle;
+    float** divergence;
+    bool** particle;
     bool** temp_particle;
 
-	int imageWidth;
+    int imageWidth;
     int imageHeight;
     float* imageData;
 
@@ -202,95 +202,95 @@ __global__ void kernelClearImage(float r, float g, float b, float a) {
 
 CudaRenderer::CudaRenderer() {
 
-	image = NULL;
+    image = NULL;
     box = NULL;
     sceneName = WATER_CUBE;
 
-	// length = 0;
-	// width = 0;
+    // length = 0;
+    // width = 0;
 
-	// time_step_size = 0;
-	// diff_const = 0;
+    // time_step_size = 0;
+    // diff_const = 0;
 
-	// numParticles = 0;
-	// size = 0;
+    // numParticles = 0;
+    // size = 0;
 
-	// vel_x = NULL;
-	// vel_y = NULL;
+    // vel_x = NULL;
+    // vel_y = NULL;
 
-	// temp_vel_x = NULL;
-	// temp_vel_y = NULL;
+    // temp_vel_x = NULL;
+    // temp_vel_y = NULL;
 
-	// pre_x = NULL;
-	// pre_y = NULL;
+    // pre_x = NULL;
+    // pre_y = NULL;
 
-	// temp_pre_x = NULL;
-	// temp_pre_y = NULL;
+    // temp_pre_x = NULL;
+    // temp_pre_y = NULL;
 
-	// grad_x = NULL;
-	// grad_y = NULL;
+    // grad_x = NULL;
+    // grad_y = NULL;
 
-	// divergence = NULL;
-	// particle = NULL;
+    // divergence = NULL;
+    // particle = NULL;
 
-	cudaDevice_imageData = NULL;    
+    cudaDevice_imageData = NULL;    
 
-	cudaDevice_vel_x = NULL;
-	cudaDevice_vel_y = NULL;
+    cudaDevice_vel_x = NULL;
+    cudaDevice_vel_y = NULL;
 
-	cudaDevice_temp_vel_x = NULL;
-	cudaDevice_temp_vel_y = NULL;
+    cudaDevice_temp_vel_x = NULL;
+    cudaDevice_temp_vel_y = NULL;
 
-	cudaDevice_pre_x = NULL;
-	cudaDevice_pre_y = NULL;
+    cudaDevice_pre_x = NULL;
+    cudaDevice_pre_y = NULL;
 
-	cudaDevice_temp_pre_x = NULL;
-	cudaDevice_temp_pre_y = NULL;
+    cudaDevice_temp_pre_x = NULL;
+    cudaDevice_temp_pre_y = NULL;
 
-	cudaDevice_grad_x = NULL;
-	cudaDevice_grad_y = NULL;
+    cudaDevice_grad_x = NULL;
+    cudaDevice_grad_y = NULL;
 
-	cudaDevice_divergence = NULL;
-	cudaDevice_particle = NULL;
+    cudaDevice_divergence = NULL;
+    cudaDevice_particle = NULL;
     cudaDevice_temp_particle = NULL;
 
 }
 
 CudaRenderer::~CudaRenderer(){
 
-	if(image) {
-		delete image;
-	}
+    if(image) {
+        delete image;
+    }
 
-	delete [] box->vel_x;
-	delete [] box->vel_y;
-	delete [] box->temp_vel_x;
-	delete [] box->temp_vel_y;
-	delete [] box->pre_x;
-	delete [] box->pre_y;
-	delete [] box->temp_pre_x;
-	delete [] box->temp_pre_y;
-	delete [] box->particle;
+    delete [] box->vel_x;
+    delete [] box->vel_y;
+    delete [] box->temp_vel_x;
+    delete [] box->temp_vel_y;
+    delete [] box->pre_x;
+    delete [] box->pre_y;
+    delete [] box->temp_pre_x;
+    delete [] box->temp_pre_y;
+    delete [] box->particle;
     delete [] box->temp_particle;
-	delete [] box->divergence;
-	delete [] box->grad_x;
-	delete [] box->grad_y;
+    delete [] box->divergence;
+    delete [] box->grad_x;
+    delete [] box->grad_y;
     delete [] box;
 
-	cudaFree(cudaDevice_vel_x);
-	cudaFree(cudaDevice_vel_y);
-	cudaFree(cudaDevice_temp_vel_x);
-	cudaFree(cudaDevice_temp_vel_y);
-	cudaFree(cudaDevice_pre_x);
-	cudaFree(cudaDevice_pre_y);
-	cudaFree(cudaDevice_temp_pre_x);
-	cudaFree(cudaDevice_temp_pre_y);
-	cudaFree(cudaDevice_particle);
+    cudaFree(cudaDevice_vel_x);
+    cudaFree(cudaDevice_vel_y);
+    cudaFree(cudaDevice_temp_vel_x);
+    cudaFree(cudaDevice_temp_vel_y);
+    cudaFree(cudaDevice_pre_x);
+    cudaFree(cudaDevice_pre_y);
+    cudaFree(cudaDevice_temp_pre_x);
+    cudaFree(cudaDevice_temp_pre_y);
+    cudaFree(cudaDevice_particle);
     cudaFree(cudaDevice_temp_particle);
-	cudaFree(cudaDevice_divergence);
-	cudaFree(cudaDevice_grad_x);
-	cudaFree(cudaDevice_grad_y);
-	cudaFree(cudaDevice_imageData);
+    cudaFree(cudaDevice_divergence);
+    cudaFree(cudaDevice_grad_x);
+    cudaFree(cudaDevice_grad_y);
+    cudaFree(cudaDevice_imageData);
 }
 
 // allocOutputImage --
@@ -437,37 +437,37 @@ CudaRenderer::setup() {
 
     params.sceneName = sceneName;
 
-	params.length = length;
-	params.width = width;
+    params.length = length;
+    params.width = width;
 
-	params.time_step_size = box->time_step_size;
-	params.diff_const = box->diff_const;
+    params.time_step_size = box->time_step_size;
+    params.diff_const = box->diff_const;
 
-	params.numParticles = box->numParticles;
-	params.size = box->size;      
+    params.numParticles = box->numParticles;
+    params.size = box->size;      
 
-	params.vel_x = cudaDevice_vel_x;
-	params.vel_y = cudaDevice_vel_y;
+    params.vel_x = cudaDevice_vel_x;
+    params.vel_y = cudaDevice_vel_y;
 
-	params.temp_vel_x = cudaDevice_temp_vel_x;
-	params.temp_vel_y = cudaDevice_temp_vel_y;
+    params.temp_vel_x = cudaDevice_temp_vel_x;
+    params.temp_vel_y = cudaDevice_temp_vel_y;
 
-	params.pre_x = cudaDevice_pre_x;
-	params.pre_y = cudaDevice_pre_y;
+    params.pre_x = cudaDevice_pre_x;
+    params.pre_y = cudaDevice_pre_y;
 
-	params.temp_pre_x = cudaDevice_temp_pre_x;
-	params.temp_pre_y = cudaDevice_temp_pre_y;
+    params.temp_pre_x = cudaDevice_temp_pre_x;
+    params.temp_pre_y = cudaDevice_temp_pre_y;
 
-	params.grad_x = cudaDevice_grad_x;
-	params.grad_y = cudaDevice_grad_y;
+    params.grad_x = cudaDevice_grad_x;
+    params.grad_y = cudaDevice_grad_y;
 
-	params.divergence = cudaDevice_divergence;
-	params.particle = cudaDevice_particle;
+    params.divergence = cudaDevice_divergence;
+    params.particle = cudaDevice_particle;
     params.temp_particle = cudaDevice_temp_particle;
 
-	params.imageHeight = image->height;
-	params.imageWidth = image->width;
-	params.imageData = cudaDevice_imageData;
+    params.imageHeight = image->height;
+    params.imageWidth = image->width;
+    params.imageData = cudaDevice_imageData;
 
     cudaMemcpyToSymbol(gpuParams, &params, sizeof(GlobalConstants));
 }
