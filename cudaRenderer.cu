@@ -93,6 +93,7 @@ __global__ void kernelAdvection(){
 }
 
 __global__ void kernelDiffusion(){
+
     int index_x = blockIdx.x * blockDim.x + threadIdx.x;
     int index_y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -104,7 +105,7 @@ __global__ void kernelDiffusion(){
 
         for(int iter = 0; iter < DIFF_ITER; iter++) {
 
-            gpuParams.temp_vel_y[index_y][index_x] = gpuParams.vel_y[index_y][index_x];
+            gpuParams.temp_vel_x[index_y][index_x] = gpuParams.vel_x[index_y][index_x];
             gpuParams.temp_vel_y[index_y][index_x] = gpuParams.vel_y[index_y][index_x];
 
             sumx = gpuParams.temp_vel_x[index_y - 1][index_x] + gpuParams.temp_vel_x[index_y+1][index_x] +
@@ -118,6 +119,60 @@ __global__ void kernelDiffusion(){
             __syncthreads();
         }
     }
+}
+
+__global__ void kernelProjection(){
+    
+    int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int index_y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    float alpha = gpuParams.length * gpuParams.width;
+    float beta = 4;
+
+    gpuParams.divergence[index_y][index_x] = (gpuParams.temp_vel_y[index_y - 1][index_x] - gpuParams.temp_vel_y[index_y+1][index_x] +
+                   gpuParams.temp_vel_x[index_y][index_x - 1] - gpuParams.temp_vel_x[index_y][index_x + 1])/2;
+
+    gpuParams.pre_x[index_y][index_x] = 0.0f;
+    gpuParams.pre_y[index_y][index_x] = 0.0f;
+
+    __syncthreads();
+
+    if(index_x >= 1 and index_x < gpuParams.length - 1 and index_y >= 1 or index_y < gpuParams.width - 1){
+
+        float sumx, sumy;
+
+        for(int iter = 0; iter < DIFF_ITER; iter++) {
+
+            gpuParams.temp_pre_x[index_y][index_x] = gpuParams.pre_y[index_y][index_x];
+            gpuParams.temp_pre_y[index_y][index_x] = gpuParams.pre_y[index_y][index_x];
+
+            sumx = gpuParams.temp_pre_x[index_y - 1][index_x] + gpuParams.temp_pre_x[index_y+1][index_x] +
+                   gpuParams.temp_pre_x[index_y][index_x - 1] + gpuParams.temp_pre_x[index_y][index_x + 1];
+            sumy = gpuParams.temp_pre_y[index_y - 1][index_x] + gpuParams.temp_pre_y[index_y+1][index_x] +
+                   gpuParams.temp_pre_y[index_y][index_x - 1] + gpuParams.temp_pre_y[index_y][index_x + 1];
+
+            gpuParams.pre_x[index_y][index_x] = (sumx + alpha*gpuParams.divergence[index_y][index_x])/beta;
+            gpuParams.pre_y[index_y][index_x] = (sumy + alpha*gpuParams.divergence[index_y][index_x])/beta;
+
+            __syncthreads();
+        }
+    }
+}
+
+__global__ void kernelGradientComputation(){
+
+    int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int index_y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    gpuParams.grad_x[index_y][index_x] = (gpuParams.pre_x[index_y+1][index_x] - gpuParams.pre_x[index_y-1][index_x])/2;
+    gpuParams.grad_y[index_y][index_x] = (gpuParams.pre_y[index_y][index_x+1] - gpuParams.pre_y[index_y][index_x-1])/2;
+
+    gpuParams.temp_vel_x[index_y][index_x] -= gpuParams.grad_x[index_y][index_x];
+    gpuParams.temp_vel_y[index_y][index_x] -= gpuParams.grad_y[index_y][index_x]; 
+
+    gpuParams.vel_x[index_y][index_x] -= gpuParams.grad_x[index_y][index_x];
+    gpuParams.vel_y[index_y][index_x] -= gpuParams.grad_y[index_y][index_x]; 
+    
 }
 
 __global__ void kernelClearImage(float r, float g, float b, float a) {
@@ -139,12 +194,6 @@ __global__ void kernelClearImage(float r, float g, float b, float a) {
     // up as four seperate fp32 stores.
     *(float4*)(&gpuParams.imageData[offset]) = value;
 }
-
-__global__ void kernelAdvanceWaterCube(){
-
-
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Cuda Renderer Class
