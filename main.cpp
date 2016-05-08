@@ -15,7 +15,7 @@
 #include "cudaRenderer.h"
 
 #define WINDOW_HEIGHT 350
-#define WINDOW_WIDTH 300
+#define WINDOW_WIDTH 350
 
 void startRendererWithDisplay(CudaRenderer* renderer);
 
@@ -35,7 +35,7 @@ struct Point
 std::vector< Point > points;
 
 /* Global variables */
-char title[] = "3D Shapes with animation";
+char title[] = "Fluid Simulation";
 GLfloat angleCube = 0.0f;     // Rotational angle for cube [NEW]
 int refreshMills = DT * 1000;        // refresh interval in milliseconds [NEW]
 GLfloat camera_angle = 0.0f;
@@ -67,8 +67,16 @@ void drawParticle(int i, int j){
 
  	glBegin(GL_POINTS);
 
- 		if(i)
- 		glColor3f(0.4f,0.84f,0.91f);
+ 		if(i < box->length/2 && j < box->length/2)
+ 			glColor3f(0.4f,0.84f,0.91f);
+
+ 		else if(i < box->length/2 && j < box->length/2)
+ 			glColor3f(0.1f,0.5f,0.3f);
+ 		else if(i < box->length/2 && j < box->length/2)
+ 			glColor3f(0.8f,0.6f,0.2f);
+ 		else
+ 			glColor3f(0.5f,0.3f,0.9f);
+
  		glVertex2f(x,y);
  		glColor3f(1.0f,1.0f,1.0f);
  	glEnd();

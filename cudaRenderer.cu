@@ -7,15 +7,14 @@
 #include <string>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <iostream>
 
 #include "cudaRenderer.h"
 #include "image.h"
-#include "sceneLoader.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Putting all the cuda kernels here
 ////////////////////////////////////////////////////////////////////////////////////
-
 
 typedef struct {
 
@@ -173,6 +172,37 @@ __global__ void kernelGradientComputation(){
     gpuParams.vel_x[index_y][index_x] -= gpuParams.grad_x[index_y][index_x];
     gpuParams.vel_y[index_y][index_x] -= gpuParams.grad_y[index_y][index_x]; 
     
+}
+
+__device__ __inline__ void
+shadePixel(float4* imgPtr){
+
+    float4 color;
+    color.x = 0.0f;
+    color.y = 0.0f;
+    color.z = 1.0f;
+    color.w = 0.0f;
+
+    *imgPtr = color;
+
+}
+
+__global__ void kernelRender(){
+
+    int index_x = blockIdx.x * blockDim.x + threadIdx.x;
+    int index_y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if(index_x < gpuParams.width and index_y < gpuParams.length){
+
+        int imageWidth = gpuParams.imageWidth;
+
+        float4* imgPtr = (float4*) (&gpuParams.imageData[4 * (index_y * imageWidth + index_x)]);
+
+        if(gpuParams.particle[index_x][index_y]){
+            shadePixel(imgPtr);
+        }
+    }
+
 }
 
 __global__ void kernelClearImage(float r, float g, float b, float a) {
@@ -342,11 +372,7 @@ CudaRenderer::clearImage() {
 void
 CudaRenderer::loadScene(SceneName scene) {
     sceneName = scene;
-    // loadWaterScene(length, width, time_step_size, diff_const, numParticles, 
-    //     size, sceneName, vel_x, vel_y, temp_vel_x, temp_vel_y, pre_x, pre_y, 
-    //     temp_pre_x, temp_pre_y, particle, divergence, grad_x, grad_y);
-
-    box = loadWaterScene();
+    box = FluidBoxCreate2D(LENGTH,WIDTH,DT);
 
 }
 
@@ -395,6 +421,7 @@ CudaRenderer::setup() {
     int length = box->length;
     int width = box->width;
 
+    cudaMalloc(&cudaDevice_imageData, sizeof(float) * 4 * image->width * image->height);
     cudaMalloc(&cudaDevice_vel_x, sizeof(float) * length * width);
     cudaMalloc(&cudaDevice_vel_y, sizeof(float) * length * width);
     cudaMalloc(&cudaDevice_temp_vel_x, sizeof(float) * length * width);
@@ -405,25 +432,23 @@ CudaRenderer::setup() {
     cudaMalloc(&cudaDevice_temp_pre_y, sizeof(float) * length * width);
     cudaMalloc(&cudaDevice_grad_x, sizeof(float) * length * width);
     cudaMalloc(&cudaDevice_grad_y, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_particle, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_temp_particle, sizeof(float) * length * width);
     cudaMalloc(&cudaDevice_divergence, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_imageData, sizeof(float) * 4 * length * width);
+    cudaMalloc(&cudaDevice_particle, sizeof(bool) * length * width);
+    cudaMalloc(&cudaDevice_temp_particle, sizeof(bool) * length * width);
 
-    cudaMemcpy(cudaDevice_vel_x, box->vel_x, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_vel_y, box->vel_y, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_vel_x, box->temp_vel_x, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_vel_y, box->temp_vel_y, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_pre_x, box->pre_x, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_pre_y, box->pre_x, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_pre_x, box->temp_pre_x, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_pre_y, box->temp_pre_y, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_grad_x, box->grad_x, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_grad_y, box->grad_y, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_particle, box->particle, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_particle, box->temp_particle, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_divergence, box->divergence, sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    
+    cudaMemcpy(cudaDevice_vel_x, box->vel_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_vel_y, box->vel_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_vel_x, box->temp_vel_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_vel_y, box->temp_vel_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_pre_x, box->pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_pre_y, box->pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_pre_x, box->temp_pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_pre_y, box->temp_pre_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_grad_x, box->grad_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_grad_y, box->grad_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_particle, box->particle[0], sizeof(bool) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_particle, box->temp_particle[0], sizeof(bool) * length * width, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_divergence, box->divergence[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);    
 
     // Initialize parameters in constant memory.  We didn't talk about
     // constant memory in class, but the use of read-only constant
@@ -496,11 +521,12 @@ CudaRenderer::render() {
     dim3 blockDim(BLOCKDIM,BLOCKDIM);
     //splitting the image into a 2d grid of 2d blocks
     dim3 gridDim(
-        (image->width + blockDim.x - 1) / blockDim.x,
-        (image->height + blockDim.y - 1) / blockDim.y);
+        (LENGTH + blockDim.x - 1) / blockDim.x,
+        (WIDTH + blockDim.y - 1) / blockDim.y);
     printf("In Host\n");
 
-    //kernelRender<<<gridDim, blockDim>>>();
+    kernelRender<<<gridDim, blockDim>>>();
+
     cudaThreadSynchronize();
 
 }
