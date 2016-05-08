@@ -1,11 +1,11 @@
 #ifndef __NV_SEQ2D_H__
 #define __NV_SEQ2D_H__
 
-#define FILL_LEVEL 0.75
+#define FILL_LEVEL 0.5
 #define DIFF_ITER 50
 #define IMPACT_RADIUS 3
-#define LENGTH 10
-#define WIDTH 10
+#define LENGTH 1000
+#define WIDTH 1000
 #define DT 0.015
 #define DIFF_CONST 0.0016
 
