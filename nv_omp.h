@@ -1,3 +1,6 @@
+#ifndef __NV_OMP_H__
+#define __NV_OMP_H__
+
 #include "nv_seq2d.h"
 
 
@@ -13,3 +16,5 @@ void setZeroOMP(float** array, int length, int width);
 void copy2dArrayOMP(float** dst,float** src, int length, int width);
 void accountForGradientOMP(FluidBox *box);
 void timeStepOMP(FluidBox *box);
+
+#endif

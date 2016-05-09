@@ -5,10 +5,11 @@
 #include <stdint.h>
 #include <string.h>
 #include "nv_seq2d_ompAlt.h"
+#include "cycleTimer.h"
 
-FluidBox *FluidBoxCreate2D_ompAlt(int length, int width, float ts) {
+FluidBoxAlt *FluidBoxCreate2D_ompAlt(int length, int width, float ts) {
 
-	FluidBox *box = new FluidBox;
+	FluidBoxAlt *box = new FluidBoxAlt;
 
 	box->length = LENGTH;
 	box->width = WIDTH;
@@ -44,7 +45,7 @@ FluidBox *FluidBoxCreate2D_ompAlt(int length, int width, float ts) {
 
 }
 
-void FluidBoxFree2D_ompAlt(FluidBox *box) {
+void FluidBoxFree2D_ompAlt(FluidBoxAlt *box) {
 
 
 	delete [] box->vel_x;
@@ -69,7 +70,7 @@ void FluidBoxFree2D_ompAlt(FluidBox *box) {
 // 	box->density[index] += density;
 // }
 
-void addVelocity2D_ompAlt(FluidBox *box, int x, int y, float vel_x, float vel_y) {
+void addVelocity2D_ompAlt(FluidBoxAlt *box, int x, int y, float vel_x, float vel_y) {
 
 	int length = box->length;
 	int width = box->width;
@@ -80,14 +81,14 @@ void addVelocity2D_ompAlt(FluidBox *box, int x, int y, float vel_x, float vel_y)
 	box->vel_y[index] += vel_y;
 }
 
-void advectCube2D_ompAlt(FluidBox *box) {
+void advectCube2D_ompAlt(FluidBoxAlt *box) {
 
 	float dt = box->time_step_size;
 	int old_i,old_j,old_index;
 	int length = box->length;
 	int width = box->width;
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic, 1024)	
 	for(int i = 0; i < length * width; i++){
 
 		int index = i;
@@ -119,7 +120,7 @@ void advectCube2D_ompAlt(FluidBox *box) {
 		box->particle[i] = box->temp_particle[i];
 }
 
-void diffuseCube2D_ompAlt(FluidBox *box) {
+void diffuseCube2D_ompAlt(FluidBoxAlt *box) {
 
 	int length = box->length;
 
@@ -134,7 +135,7 @@ void diffuseCube2D_ompAlt(FluidBox *box) {
 		copy2dArray_ompAlt(box->temp_vel_x,box->vel_x,box->length,box->width);
 		copy2dArray_ompAlt(box->temp_vel_y,box->vel_y,box->length,box->width);
 
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(static)		
 		for (int i = 1; i < box->length * box-> width; ++i){
 
 			int x = i%box->length;
@@ -159,7 +160,7 @@ void diffuseCube2D_ompAlt(FluidBox *box) {
 	}
 }
 
-void addForce2D_ompAlt(FluidBox *box){
+void addForce2D_ompAlt(FluidBoxAlt *box){
 
 	int length = box->length;
 
@@ -187,11 +188,11 @@ void addForce2D_ompAlt(FluidBox *box){
 	}
 }
 
-void computeDivergence2D_ompAlt(FluidBox *box) {
+void computeDivergence2D_ompAlt(FluidBoxAlt *box) {
 
 	int length = box->length;
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic, 1024)	
 	for (int i = 1; i < box->length * box-> width; ++i){
 
 		int x = i%box->length;
@@ -208,7 +209,7 @@ void computeDivergence2D_ompAlt(FluidBox *box) {
 	}
 }
 
-void projectBox2D_ompAlt(FluidBox *box){
+void projectBox2D_ompAlt(FluidBoxAlt *box){
 
 	float alpha = (box->length) * (box->width);
 	float beta = 4;
@@ -224,7 +225,7 @@ void projectBox2D_ompAlt(FluidBox *box){
 		copy2dArray_ompAlt(box->temp_pre_x,box->pre_x,box->length,box->width);
 		copy2dArray_ompAlt(box->temp_pre_y,box->pre_y,box->length,box->width);
 
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(dynamic, 1024)		
 		for (int i = 1; i < box->length * box-> width; ++i){
 
 			int x = i%box->length;
@@ -251,7 +252,7 @@ void projectBox2D_ompAlt(FluidBox *box){
 
 void setZero2D_ompAlt(float* array, int length, int width){
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic, 1024)	
 	for(int i = 0; i < length * width; i++)
 		array[i] = 0.0f;
 
@@ -259,16 +260,16 @@ void setZero2D_ompAlt(float* array, int length, int width){
 
 void copy2dArray_ompAlt(float* dst,float* src, int length, int width){
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic, 1024)	
 	for(int i = 0; i < length * width; i++)
 		dst[i] = src[i];
 
 }
 
-void accountForGradient2D_ompAlt(FluidBox *box) {
+void accountForGradient2D_ompAlt(FluidBoxAlt *box) {
 
 	int length = box->length;
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic, 1024)	
 	for(int i = 1; i < box->length * box->width; i++){
 
 		int x = i%box->length;
@@ -292,11 +293,11 @@ void accountForGradient2D_ompAlt(FluidBox *box) {
 	}
 }
 
-int countParticles_ompAlt(FluidBox *box){
+int countParticles_ompAlt(FluidBoxAlt *box){
 
 	int numParticles = 0;
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic, 1024)	
 	for (int i = 1; i < box->length * box->width; i++){
 
 		if(box->particle[i]) {
@@ -311,9 +312,9 @@ int countParticles_ompAlt(FluidBox *box){
 
 }
 
-void timeStep2D_ompAlt(FluidBox *box){
+void timeStep2D_ompAlt(FluidBoxAlt *box){
 
-
+	double startTime = CycleTimer::currentSeconds();
 	advectCube2D_ompAlt(box);
 	// printf("Advected\n");
 	diffuseCube2D_ompAlt(box);
@@ -325,6 +326,8 @@ void timeStep2D_ompAlt(FluidBox *box){
 	projectBox2D_ompAlt(box);
 	// printf("Projected\n");
 	accountForGradient2D_ompAlt(box);
+	double endTime = CycleTimer::currentSeconds();
+	printf("OMP Alt takes %f ms\n",(endTime - startTime)*1000);
 	// printf("Done\n");
 
 	// int numParticles = countParticles(box);

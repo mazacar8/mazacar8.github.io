@@ -33,7 +33,7 @@ FluidBox *FluidBoxCreateOMP(int length, int width, float ts) {
 	box->particle = new bool*[width];
 	box->temp_particle = new bool*[length];
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic,256)
 	for (int i = 0; i < width; ++i) {
 	 
 		box->vel_x[i] = new float[length]();
@@ -101,7 +101,7 @@ void advectCubeOMP(FluidBox *box) {
 	int length = box->length;
 	int width = box->width;
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic,256)
 	for(int i = 0; i < length; i++){
 
 		for(int j = 0; j <width; j++){
@@ -129,7 +129,7 @@ void advectCubeOMP(FluidBox *box) {
 		}
 	}
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic,256)
 	for (int i = 0; i < length; ++i)
 	{
 		for (int j = 0; j < width; ++j)
@@ -153,7 +153,7 @@ void diffuseCubeOMP(FluidBox *box) {
 		copy2dArrayOMP(box->temp_vel_x,box->vel_x,box->length,box->width);
 		copy2dArrayOMP(box->temp_vel_y,box->vel_y,box->length,box->width);
 
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(dynamic,256)
 		for (int i = 1; i < box->length - 1; i++){
 
 			for (int j = 1; j < box->width - 1; j++) {
@@ -186,7 +186,7 @@ void addForceOMP(FluidBox *box){
 	float vel_y = box->vel_y[i][j];
 	addVelocityOMP(box,i,j,vel_x,vel_y);
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic,256)
 	for(int m = 0; m < IMPACT_RADIUS; m++) {
 		for(int n = 0; n < IMPACT_RADIUS; n++) {
 
@@ -203,7 +203,7 @@ void addForceOMP(FluidBox *box){
 
 void computeDivergenceOMP(FluidBox *box) {
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic,256)
 	for (int i = 1; i < box->length - 1; i++){
 
 		for (int j = 1; j < box->width - 1; j++) {
@@ -233,7 +233,7 @@ void projectBoxOMP(FluidBox *box){
 		copy2dArrayOMP(box->temp_pre_x,box->pre_x,box->length,box->width);
 		copy2dArrayOMP(box->temp_pre_y,box->pre_y,box->length,box->width);
 		
-		#pragma omp parallel for
+		#pragma omp parallel for schedule(dynamic,256)
 		for (int i = 1; i < box->length - 1; i++){
 
 			for (int j = 1; j < box->width - 1; j++) {
@@ -259,7 +259,7 @@ void projectBoxOMP(FluidBox *box){
 
 void setZeroOMP(float** array, int length, int width){
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic,256)
 	for(int i = 0; i < length; i++){
 
 		for(int j = 0; j < width; j++){
@@ -274,7 +274,7 @@ void setZeroOMP(float** array, int length, int width){
 
 void copy2dArrayOMP(float** dst,float** src, int length, int width){
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic,256)
 	for(int i = 0; i < length; i++){
 
 		for(int j = 0; j < width; j++){
@@ -289,7 +289,7 @@ void copy2dArrayOMP(float** dst,float** src, int length, int width){
 
 void accountForGradientOMP(FluidBox *box) {
 
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(dynamic,256)
 	for (int i = 1; i < box->length - 1; i++){
 
 		for (int j = 1; j < box->width - 1; j++) {
@@ -314,7 +314,7 @@ void accountForGradientOMP(FluidBox *box) {
 
 // 	int numParticles = 0;
 
-// 	#pragma omp parallel for
+// 	#pragma omp parallel for schedule(dynamic,256)
 // 	for (int i = 1; i < box->length - 1; i++){
 
 // 		for (int j = 1; j < box->width - 1; j++) {
@@ -347,8 +347,7 @@ void timeStepOMP(FluidBox *box){
 	// printf("Projected\n");
 	accountForGradientOMP(box);
 	double endTime = CycleTimer::currentSeconds();
-
-    printf("OpenMP Version takes %f ms\n",(endTime - startTime)*1000);
+	printf("OpenMP Version takes %f ms\n",(endTime - startTime)*1000);
 	// printf("Done\n");
 
 	// int numParticles = countParticles(box);

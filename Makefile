@@ -21,10 +21,17 @@ HOSTNAME=$(shell hostname)
 LIBS       :=
 FRAMEWORKS :=
 
+ifeq ($(HOSTNAME), latedays.andrew.cmu.edu)
+# Building on Latedays
+NVCCFLAGS=-O3 -m64 -arch compute_20
+LIBS += GL glut cudart
+LDFLAGS=-L/usr/local/cuda/lib64/ -lcudart
+else
 # Building on Linux
 NVCCFLAGS=-O3 -m64 -arch compute_20
 LIBS += GL glut GLU cudart
 LDFLAGS=-L/usr/local/depot/cuda-6.5/lib64/ -lcudart
+endif
 
 LDLIBS  := $(addprefix -l, $(LIBS))
 LDFRAMEWORKS := $(addprefix -framework , $(FRAMEWORKS))
@@ -33,6 +40,7 @@ NVCC=nvcc
 
 OBJS=$(OBJDIR)/main.o $(OBJDIR)/nv_seq2d.o $(OBJDIR)/display.o $(OBJDIR)/nv_omp.o \
 	$(OBJDIR)/cudaRenderer.o $(OBJDIR)/nv_seq2d_ompAlt.o $(OBJDIR)/nv_seq.o
+
 
 
 .PHONY: dirs clean

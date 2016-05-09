@@ -5,9 +5,9 @@
 #define uint unsigned int
 #endif
 
-#include "nv_seq2d.h"
+#include "nv_seq.h"
 
-#define BLOCKDIM 16
+#define BLOCKDIM 32
 
 struct Image;
 
@@ -24,26 +24,26 @@ private:
 
     float* cudaDevice_imageData;   
 
-    float** cudaDevice_vel_x;
-    float** cudaDevice_vel_y;
+    float* cudaDevice_vel_x;
+    float* cudaDevice_vel_y;
 
-    float** cudaDevice_temp_vel_x;
-    float** cudaDevice_temp_vel_y;
+    float* cudaDevice_temp_vel_x;
+    float* cudaDevice_temp_vel_y;
 
-    float** cudaDevice_pre_x;
-    float** cudaDevice_pre_y;
+    float* cudaDevice_pre_x;
+    float* cudaDevice_pre_y;
 
-    float** cudaDevice_temp_pre_x;
-    float** cudaDevice_temp_pre_y;
+    float* cudaDevice_temp_pre_x;
+    float* cudaDevice_temp_pre_y;
 
-    float** cudaDevice_grad_x;
-    float** cudaDevice_grad_y;
+    float* cudaDevice_grad_x;
+    float* cudaDevice_grad_y;
 
-    float** cudaDevice_divergence;
-    bool** cudaDevice_particle;
-    bool** cudaDevice_temp_particle;
+    float* cudaDevice_divergence;
+    bool* cudaDevice_particle;
+    bool* cudaDevice_temp_particle;
 
-    FluidBox *box;
+    FluidBox1D *box;
 
 public:
 

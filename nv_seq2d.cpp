@@ -99,7 +99,7 @@ void advectCube2D(FluidBox *box) {
 	int length = box->length;
 	int width = box->width;
 
-	for(int i = 0; i < length; i++){
+	for(int i = 0; i < length/2; i++){
 
 		//#pragma omp parallel for
 		for(int j = 0; j <width; j++){
@@ -142,7 +142,7 @@ void diffuseCube2D(FluidBox *box) {
 		copy2dArray(box->temp_vel_x,box->vel_x,box->length,box->width);
 		copy2dArray(box->temp_vel_y,box->vel_y,box->length,box->width);
 
-		for (int i = 1; i < box->length - 1; i++){
+		for (int i = 1; i < box->length/2 - 1; i++){
 
 			for (int j = 1; j < box->width - 1; j++) {
 
@@ -201,7 +201,7 @@ void addForce2D(FluidBox *box){
 
 void computeDivergence2D(FluidBox *box) {
 
-	for (int i = 1; i < box->length - 1; i++){
+	for (int i = 1; i < box->length/2 - 1; i++){
 
 		for (int j = 1; j < box->width - 1; j++) {
 
@@ -225,19 +225,12 @@ void projectBox2D(FluidBox *box){
 	setZero2D(box->pre_x,box->length,box->width);
 	setZero2D(box->pre_y,box->length,box->width);
 
-	for(long i = 0; i < 1000000000; i++){
-        
-        ;
-
-    }
-
-
 	for(int iter = 0; iter < DIFF_ITER; iter++) {
 
 		copy2dArray(box->temp_pre_x,box->pre_x,box->length,box->width);
 		copy2dArray(box->temp_pre_y,box->pre_y,box->length,box->width);
 		
-		for (int i = 1; i < box->length - 1; i++){
+		for (int i = 1; i < box->length/2 - 1; i++){
 
 			for (int j = 1; j < box->width - 1; j++) {
 
@@ -262,7 +255,7 @@ void projectBox2D(FluidBox *box){
 
 void setZero2D(float** array, int length, int width){
 
-	for(int i = 0; i < length; i++){
+	for(int i = 0; i < length/2; i++){
 
 		for(int j = 0; j < width; j++){
 
@@ -276,7 +269,7 @@ void setZero2D(float** array, int length, int width){
 
 void copy2dArray(float** dst,float** src, int length, int width){
 
-	for(int i = 0; i < length; i++){
+	for(int i = 0; i < length/2; i++){
 
 		for(int j = 0; j < width; j++){
 			
@@ -290,7 +283,7 @@ void copy2dArray(float** dst,float** src, int length, int width){
 
 void accountForGradient2D(FluidBox *box) {
 
-	for (int i = 1; i < box->length - 1; i++){
+	for (int i = 1; i < box->length/2 - 1; i++){
 
 		for (int j = 1; j < box->width - 1; j++) {
 
@@ -314,7 +307,7 @@ int countParticles(FluidBox *box){
 
 	int numParticles = 0;
 
-	for (int i = 1; i < box->length - 1; i++){
+	for (int i = 1; i < box->length/2 - 1; i++){
 
 		for (int j = 1; j < box->width - 1; j++) {
 
@@ -343,8 +336,7 @@ void timeStep2D(FluidBox *box){
 	// printf("Projected\n");
 	accountForGradient2D(box);
 	double endTime = CycleTimer::currentSeconds();
-
-    printf("Sequential Version takes %f ms\n",(endTime - startTime)*1000);
+	printf("Sequential Version takes %f ms\n",(endTime - startTime)*1000);
 	// printf("Done\n");
 
 	// int numParticles = countParticles(box);

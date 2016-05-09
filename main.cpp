@@ -7,13 +7,13 @@
 #include <omp.h>
 #include "nv_omp.h"
 #include "nv_seq2d.h"
-#include "nv_seq2d_ompAlt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <vector>
 #include <getopt.h>
 #include "cudaRenderer.h"
+#include "nv_seq2d_ompAlt.h"
 
 #define WINDOW_HEIGHT 350
 #define WINDOW_WIDTH 350
@@ -21,7 +21,9 @@
 bool cuda = false;
 bool omp = false;
 bool ref = false;
-bool ompAlt = false;
+bool omp_alt = false;
+FluidBox *box;
+FluidBoxAlt *box1;
 
 void startRendererWithDisplay(CudaRenderer* renderer);
 
@@ -44,8 +46,6 @@ std::vector< Point > points;
 char title[] = "Fluid Simulation";
 int refreshMills = DT * 1000;        // refresh interval in milliseconds [NEW]
 bool mousePressed = false;
-
-FluidBox *box;
 
 /* Initialize OpenGL Graphics */
 void initGL() {
@@ -125,28 +125,59 @@ void timer(int value) {
     else if(omp)
         timeStepOMP(box);
 
-    else if(ompAlt)
-        timeStep2D_ompAlt(box);
+    else if(omp_alt)
+        timeStep2D_ompAlt(box1);
 
 	points.clear();
 
-	for(int i = 0; i < box->length; i++){
-		for(int j = 0; j < box->width; j++){
+    if(ref || omp){
 
-			if(box->particle[i][j]){
+        for(int i = 0; i < box->length; i++){
+            for(int j = 0; j < box->width; j++){
 
-				Point pt;
-				pt.x = -50+WINDOW_WIDTH*j/(box->width);
-				pt.y = -50+WINDOW_HEIGHT*i/(box->length);
-				pt.r = 100;
-				pt.g = 200;
-				pt.b = 230;
-				pt.a = 255;
-				points.push_back(pt);
-			}
+                if(box->particle[i][j]){
 
-		}
-	}
+                    Point pt;
+                    pt.x = -50+WINDOW_WIDTH*j/(box->width);
+                    pt.y = -50+WINDOW_HEIGHT*i/(box->length);
+                    pt.r = 100;
+                    pt.g = 200;
+                    pt.b = 230;
+                    pt.a = 255;
+                    points.push_back(pt);
+                }
+
+            }
+        }
+
+    }
+
+    else{
+
+        //#pragma omp parallel for
+        for(int i = 0; i < box1->size; i++){
+
+            if(box1->particle[i]){
+
+                int x = i % WIDTH;
+                int y = i/WIDTH;
+
+                Point pt;
+                pt.x = -50+WINDOW_WIDTH*x/(box1->width);
+                pt.y = -50+WINDOW_HEIGHT*y/(box1->length);
+                pt.r = 100;
+                pt.g = 200;
+                pt.b = 230;
+                pt.a = 255;
+                points.push_back(pt);
+            }
+
+        }
+
+    }
+
+
+	
 
 	glutTimerFunc(refreshMills, timer, 0); // next timer call milliseconds later
 
@@ -204,8 +235,8 @@ int main(int argc, char** argv) {
             else if(std::string(optarg).compare("omp") == 0)
                 omp = true;
 
-            else if(std::string(optarg).compare("ompAlt") == 0)
-                ompAlt = true;
+            else if(std::string(optarg).compare("omp_alt") == 0)
+                omp_alt = true;
 
             else{
             	usage(argv[0]);
@@ -238,8 +269,8 @@ int main(int argc, char** argv) {
     else if(omp)
         box = FluidBoxCreateOMP(LENGTH, WIDTH, DT);
 
-    else if(ompAlt)
-        box = FluidBoxCreate2D_ompAlt(LENGTH, WIDTH, DT);
+    else if(omp_alt)
+        box1 = FluidBoxCreate2D_ompAlt(LENGTH, WIDTH, DT);
 
     else
         box = FluidBoxCreate2D(LENGTH, WIDTH, DT);

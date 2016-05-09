@@ -81,11 +81,7 @@ __global__ void kernelAdvection(){
 
         int old_index = old_y * WIDTH + old_x;
 
-<<<<<<< HEAD
         if(old_index < size and old_index >= 0){
-=======
-        if(old_x < LENGTH and old_x >= 0 and old_y < WIDTH and old_y >= 0 ){
->>>>>>> 6d1e96291bbad96052bace1ec005e3e27fd09e1f
 
             gpuParams.temp_particle[index] = gpuParams.particle[old_index];
 

@@ -43,21 +43,21 @@ typedef struct {
 	int mouse_i, mouse_j;
 	bool mousePressed;
 
-} FluidBox;
+} FluidBoxAlt;
 
-FluidBox *FluidBoxCreate2D_ompAlt(int length, int width, float ts);
-void FluidBoxFree2D_ompAlt(FluidBox *box);
-void addVelocity2D_ompAlt(FluidBox *box, int x, int y, float vel_x, float vel_y);
-void advectCube2D_ompAlt(FluidBox *box);
-void diffuseCube2D_ompAlt(FluidBox *box);
-void addForce2D_ompAlt(FluidBox *box);
-void computeDivergence2D_ompAlt(FluidBox *box);
-void projectBox2D_ompAlt(FluidBox *box);
-void accountForGradient2D_ompAlt(FluidBox *box);
-void timeStep2D_ompAlt(FluidBox *box);
+FluidBoxAlt *FluidBoxCreate2D_ompAlt(int length, int width, float ts);
+void FluidBoxFree2D_ompAlt(FluidBoxAlt *box);
+void addVelocity2D_ompAlt(FluidBoxAlt *box, int x, int y, float vel_x, float vel_y);
+void advectCube2D_ompAlt(FluidBoxAlt *box);
+void diffuseCube2D_ompAlt(FluidBoxAlt *box);
+void addForce2D_ompAlt(FluidBoxAlt *box);
+void computeDivergence2D_ompAlt(FluidBoxAlt *box);
+void projectBox2D_ompAlt(FluidBoxAlt *box);
+void accountForGradient2D_ompAlt(FluidBoxAlt *box);
+void timeStep2D_ompAlt(FluidBoxAlt *box);
 void copy2dArray_ompAlt(float* dst,float* src, int length, int width);
 void setZero2D_ompAlt(float* array, int length, int width);
-int countParticles_ompAlt(FluidBox *box);
+int countParticles_ompAlt(FluidBoxAlt *box);
 
 #endif
 
