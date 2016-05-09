@@ -12,6 +12,7 @@
 
 #include "cudaRenderer.h"
 #include "image.h"
+#include "cycleTimer.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Putting all the cuda kernels here
@@ -176,12 +177,53 @@ __global__ void kernelGradientComputation(){
 }
 
 __device__ __inline__ void
-shadePixel(float4* imgPtr){
+shadePixel(int x, int y){
 
-    float r = 1.f;
-    float g = 0.f;
-    float b = 0.f;
-    float a = 1.f;    
+    int pixels_per_cell_x = 0;
+    int pixels_per_cell_y = 0;
+
+    int imageWidth = gpuParams.imageWidth;
+    int imageHeight = gpuParams.imageHeight;
+
+    pixels_per_cell_y = 
+        (LENGTH < imageHeight) ? 1 : (LENGTH + imageHeight - 1)/imageHeight;
+
+    pixels_per_cell_x = 
+        (WIDTH < imageWidth) ? 1 : (WIDTH + imageWidth - 1)/imageWidth;
+
+    int pixelRow = y/pixels_per_cell_y;
+    int pixelCol = x/pixels_per_cell_x;
+
+    int particlesInPixel = 1;
+
+    float r = gpuParams.vel_x[x][y]/(gpuParams.vel_x[x][y]+gpuParams.vel_y[x][y]);
+    float g = gpuParams.vel_y[x][y]/(gpuParams.vel_x[x][y]+gpuParams.vel_y[x][y]);
+    float b = 0.5f * ((gpuParams.pre_x[x][y]/(gpuParams.pre_x[x][y] + gpuParams.pre_y[x][y])) + 
+            (gpuParams.pre_y[x][y]/(gpuParams.pre_x[x][y] + gpuParams.pre_y[x][y])));
+
+    int startCol = x/pixels_per_cell_x * pixels_per_cell_x;
+    int startRow = y/pixels_per_cell_y * pixels_per_cell_y;
+
+    for(int i = startRow; i < startRow + pixels_per_cell_y; i++ ){
+        for(int j = startCol; j < startCol + pixels_per_cell_x; j++){
+
+            if(gpuParams.particle[i][j] && (i != y && j != x)){
+
+                particlesInPixel++;
+                r *= gpuParams.vel_x[x][y]/(gpuParams.vel_x[x][y]+gpuParams.vel_y[x][y]);
+                g *= gpuParams.vel_y[x][y]/(gpuParams.vel_x[x][y]+gpuParams.vel_y[x][y]);
+                b *= 0.5f * ((gpuParams.pre_x[x][y]/(gpuParams.pre_x[x][y] + gpuParams.pre_y[x][y])) + 
+            (gpuParams.pre_y[x][y]/(gpuParams.pre_x[x][y] + gpuParams.pre_y[x][y])));
+
+            }
+
+        }
+    }
+
+    int offset = 4 * (pixelCol * imageWidth + pixelRow);
+    float4* imgPtr = (float4 *) (&gpuParams.imageData[offset]);
+
+    float a = 0.1f * particlesInPixel;
     float4 color = make_float4(r, g, b, a);
     *imgPtr = color;
 
@@ -194,14 +236,9 @@ __global__ void kernelRender(){
 
     if(index_x < gpuParams.width and index_y < gpuParams.length){
 
-        int imageWidth = gpuParams.imageWidth;
-        int offset = 4 * (index_y * imageWidth + index_x);
-
-        float4* imgPtr = (float4 *) (&gpuParams.imageData[offset]);
-
-        if(gpuParams.particle[index_x][index_y]){
-            shadePixel(imgPtr);
-        }
+        if(gpuParams.particle[index_x][index_y])
+            shadePixel(index_x,index_y);
+        
     }
 
 }
@@ -235,34 +272,6 @@ CudaRenderer::CudaRenderer() {
 
     image = NULL;
     box = NULL;
-    sceneName = WATER_CUBE;
-
-    // length = 0;
-    // width = 0;
-
-    // time_step_size = 0;
-    // diff_const = 0;
-
-    // numParticles = 0;
-    // size = 0;
-
-    // vel_x = NULL;
-    // vel_y = NULL;
-
-    // temp_vel_x = NULL;
-    // temp_vel_y = NULL;
-
-    // pre_x = NULL;
-    // pre_y = NULL;
-
-    // temp_pre_x = NULL;
-    // temp_pre_y = NULL;
-
-    // grad_x = NULL;
-    // grad_y = NULL;
-
-    // divergence = NULL;
-    // particle = NULL;
 
     cudaDevice_imageData = NULL;    
 
@@ -343,7 +352,7 @@ CudaRenderer::getImage() {
     // need to copy contents of the rendered image from device memory
     // before we expose the Image object to the caller
 
-    printf("Copying image data from device\n");
+    //printf("Copying image data from device\n");
 
     cudaMemcpy(image->data,
                cudaDevice_imageData,
@@ -507,6 +516,10 @@ CudaRenderer::advanceAnimation() {
     dim3 gridDim((LENGTH + blockDim.x - 1)/blockDim.x, (
                   WIDTH + blockDim.y - 1)/blockDim.y);
 
+    // int threadsPerBlock = 48;
+    // int numBlocks = box->size/48;
+
+    double startTime = CycleTimer::currentSeconds();
     kernelAdvection<<<gridDim, blockDim>>>();
     cudaThreadSynchronize();
     kernelDiffusion<<<gridDim, blockDim>>>();
@@ -515,17 +528,23 @@ CudaRenderer::advanceAnimation() {
     cudaThreadSynchronize();
     kernelGradientComputation<<<gridDim, blockDim>>>();
     cudaThreadSynchronize();
+    double endTime = CycleTimer::currentSeconds();
+
+    printf("Cuda Version takes %f seconds\n",endTime - startTime);
 }
 void
 CudaRenderer::render() {
 
     //using a 2d block
     dim3 blockDim(BLOCKDIM,BLOCKDIM);
-    //splitting the image into a 2d grid of 2d blocks
+    // //splitting the image into a 2d grid of 2d blocks
     dim3 gridDim(
         (LENGTH + blockDim.x - 1) / blockDim.x,
         (WIDTH + blockDim.y - 1) / blockDim.y);
-    printf("In Host\n");
+
+    // int threadsPerBlock = 48;
+    // int numBlocks = box->size/48;
+    //printf("In Host\n");
 
     kernelRender<<<gridDim, blockDim>>>();
 
