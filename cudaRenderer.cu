@@ -226,7 +226,7 @@ shadePixel(int x, int y){
     float a = 0.1f * particlesInPixel;
     float4 color = make_float4(r, g, b, a);
     *imgPtr = color;
-
+    printf("%d\n", imgPtr);
 }
 
 __global__ void kernelRender(){
