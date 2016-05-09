@@ -7,6 +7,7 @@
 #include <omp.h>
 #include "nv_omp.h"
 #include "nv_seq2d.h"
+#include "nv_seq2d_ompAlt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -20,7 +21,7 @@
 bool cuda = false;
 bool omp = false;
 bool ref = false;
-
+bool ompAlt = false;
 
 void startRendererWithDisplay(CudaRenderer* renderer);
 
@@ -124,6 +125,9 @@ void timer(int value) {
     else if(omp)
         timeStepOMP(box);
 
+    else if(ompAlt)
+        timeStep2D_ompAlt(box);
+
 	points.clear();
 
 	for(int i = 0; i < box->length; i++){
@@ -200,6 +204,9 @@ int main(int argc, char** argv) {
             else if(std::string(optarg).compare("omp") == 0)
                 omp = true;
 
+            else if(std::string(optarg).compare("ompAlt") == 0)
+                ompAlt = true;
+
             else{
             	usage(argv[0]);
             	return 1;
@@ -230,6 +237,9 @@ int main(int argc, char** argv) {
 
     else if(omp)
         box = FluidBoxCreateOMP(LENGTH, WIDTH, DT);
+
+    else if(ompAlt)
+        box = FluidBoxCreate2D_ompAlt(LENGTH, WIDTH, DT);
 
     else
         box = FluidBoxCreate2D(LENGTH, WIDTH, DT);
