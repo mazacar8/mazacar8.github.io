@@ -13,6 +13,7 @@
 #include "cudaRenderer.h"
 #include "image.h"
 #include "cycleTimer.h"
+#include "nv_seq.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Putting all the cuda kernels here
@@ -31,24 +32,24 @@ typedef struct {
     int numParticles;
     int size;      
 
-    float** vel_x;
-    float** vel_y;
+    float* vel_x;
+    float* vel_y;
 
-    float** temp_vel_x;
-    float** temp_vel_y;
+    float* temp_vel_x;
+    float* temp_vel_y;
 
-    float** pre_x;
-    float** pre_y;
+    float* pre_x;
+    float* pre_y;
 
-    float** temp_pre_x;
-    float** temp_pre_y;
+    float* temp_pre_x;
+    float* temp_pre_y;
 
-    float** grad_x;
-    float** grad_y;
+    float* grad_x;
+    float* grad_y;
 
-    float** divergence;
-    bool** particle;
-    bool** temp_particle;
+    float* divergence;
+    bool* particle;
+    bool* temp_particle;
 
     int imageWidth;
     int imageHeight;
@@ -68,28 +69,33 @@ __global__ void kernelAdvection(){
     int index_x = blockIdx.x * blockDim.x + threadIdx.x;
     int index_y = blockIdx.y * blockDim.y + threadIdx.y;
 
+    int index = index_y * WIDTH + index_x;
+    int size = LENGTH * WIDTH;
+
     int old_x, old_y;
 
-    if(index_x >= 0 and index_x < gpuParams.length and index_y >= 0 or index_y < gpuParams.width){
+    if(index < size){
 
-        old_x = round(index_x - gpuParams.temp_vel_x[index_y][index_x]*gpuParams.time_step_size);
-        old_y = round(index_y - gpuParams.temp_vel_y[index_y][index_x]*gpuParams.time_step_size);
+        old_x = round(index_x - gpuParams.temp_vel_x[index]*gpuParams.time_step_size);
+        old_y = round(index_y - gpuParams.temp_vel_y[index]*gpuParams.time_step_size);
 
-        if(old_x < LENGTH and old_x >= 0 and old_y < WIDTH and old_y >= 0 and gpuParams.particle[index_y][index_x]){
+        int old_index = old_y * WIDTH + old_x;
 
-            gpuParams.temp_particle[index_y][index_x] = gpuParams.particle[old_y][old_x];
+        if(old_index < size and old_index >= 0){
 
-            if(gpuParams.temp_particle[index_y][index_x]){
-                gpuParams.temp_vel_x[index_y][index_x] = gpuParams.vel_x[old_y][old_x];
-                gpuParams.vel_x[index_y][index_x] = gpuParams.vel_x[old_y][old_x];
-                gpuParams.temp_vel_y[index_y][index_x] = gpuParams.vel_y[old_y][old_x];
-                gpuParams.vel_y[index_y][index_x] = gpuParams.vel_y[old_y][old_x];
+            gpuParams.temp_particle[index] = gpuParams.particle[old_index];
+
+            if(gpuParams.temp_particle[index]){
+                gpuParams.temp_vel_x[index] = gpuParams.vel_x[old_index];
+                gpuParams.vel_x[index] = gpuParams.vel_x[old_index];
+                gpuParams.temp_vel_y[index] = gpuParams.vel_y[old_index];
+                gpuParams.vel_y[index] = gpuParams.vel_y[old_index];
             }
         }
 
         __syncthreads();
 
-        gpuParams.particle[index_y][index_x] = gpuParams.temp_particle[index_y][index_x];
+        gpuParams.particle[index] = gpuParams.temp_particle[index];
     }
 }
 
@@ -98,7 +104,10 @@ __global__ void kernelDiffusion(){
     int index_x = blockIdx.x * blockDim.x + threadIdx.x;
     int index_y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if(index_x >= 1 and index_x < gpuParams.length - 1 and index_y >= 1 or index_y < gpuParams.width - 1){
+    int index = index_y * WIDTH + index_x;
+
+    if(index >= 1 and index < gpuParams.size - 1){
+
         float alpha = (gpuParams.length) * (gpuParams.width)/(gpuParams.time_step_size * gpuParams.diff_const);
         float beta = alpha + 4;
 
@@ -106,16 +115,21 @@ __global__ void kernelDiffusion(){
 
         for(int iter = 0; iter < DIFF_ITER; iter++) {
 
-            gpuParams.temp_vel_x[index_y][index_x] = gpuParams.vel_x[index_y][index_x];
-            gpuParams.temp_vel_y[index_y][index_x] = gpuParams.vel_y[index_y][index_x];
+            gpuParams.temp_vel_x[index] = gpuParams.vel_x[index];
+            gpuParams.temp_vel_y[index] = gpuParams.vel_y[index];
 
-            sumx = gpuParams.temp_vel_x[index_y - 1][index_x] + gpuParams.temp_vel_x[index_y+1][index_x] +
-                   gpuParams.temp_vel_x[index_y][index_x - 1] + gpuParams.temp_vel_x[index_y][index_x + 1];
-            sumy = gpuParams.temp_vel_y[index_y - 1][index_x] + gpuParams.temp_vel_y[index_y+1][index_x] +
-                   gpuParams.temp_vel_y[index_y][index_x - 1] + gpuParams.temp_vel_y[index_y][index_x + 1];
+            int index1 = (index_y - 1) * WIDTH + index_x;
+            int index2 = (index_y + 1) * WIDTH + index_x;
+            int index3 = index_y * WIDTH + (index_x - 1);
+            int index4 = index_y * WIDTH + (index_x + 1);
 
-            gpuParams.vel_x[index_y][index_x] = (sumx + alpha*gpuParams.temp_vel_x[index_y][index_x])/beta;
-            gpuParams.vel_y[index_y][index_x] = (sumy + alpha*gpuParams.temp_vel_y[index_y][index_x])/beta;
+            sumx = gpuParams.temp_vel_x[index1] + gpuParams.temp_vel_x[index2] +
+                   gpuParams.temp_vel_x[index3] + gpuParams.temp_vel_x[index4];
+            sumy = gpuParams.temp_vel_y[index1] + gpuParams.temp_vel_y[index2] +
+                   gpuParams.temp_vel_y[index3] + gpuParams.temp_vel_y[index4];
+
+            gpuParams.vel_x[index] = (sumx + alpha*gpuParams.temp_vel_x[index])/beta;
+            gpuParams.vel_y[index] = (sumy + alpha*gpuParams.temp_vel_y[index])/beta;
 
             __syncthreads();
         }
@@ -127,33 +141,41 @@ __global__ void kernelProjection(){
     int index_x = blockIdx.x * blockDim.x + threadIdx.x;
     int index_y = blockIdx.y * blockDim.y + threadIdx.y;
 
+    int index = index_y * WIDTH + index_x;
+    int size = LENGTH * WIDTH;
+
+    int index1 = (index_y - 1) * WIDTH + index_x;
+    int index2 = (index_y + 1) * WIDTH + index_x;
+    int index3 = index_y * WIDTH + (index_x - 1);
+    int index4 = index_y * WIDTH + (index_x + 1);
+
     float alpha = gpuParams.length * gpuParams.width;
     float beta = 4;
 
-    gpuParams.divergence[index_y][index_x] = (gpuParams.temp_vel_y[index_y - 1][index_x] - gpuParams.temp_vel_y[index_y+1][index_x] +
-                   gpuParams.temp_vel_x[index_y][index_x - 1] - gpuParams.temp_vel_x[index_y][index_x + 1])/2;
+    gpuParams.divergence[index] = (gpuParams.temp_vel_y[index1] - gpuParams.temp_vel_y[index2] +
+                   gpuParams.temp_vel_x[index3] - gpuParams.temp_vel_x[index4])/2;
 
-    gpuParams.pre_x[index_y][index_x] = 0.0f;
-    gpuParams.pre_y[index_y][index_x] = 0.0f;
+    gpuParams.pre_x[index] = 0.0f;
+    gpuParams.pre_y[index] = 0.0f;
 
     __syncthreads();
 
-    if(index_x >= 1 and index_x < gpuParams.length - 1 and index_y >= 1 or index_y < gpuParams.width - 1){
+    if(index >= 1 and index < size - 1){
 
         float sumx, sumy;
 
         for(int iter = 0; iter < DIFF_ITER; iter++) {
 
-            gpuParams.temp_pre_x[index_y][index_x] = gpuParams.pre_y[index_y][index_x];
-            gpuParams.temp_pre_y[index_y][index_x] = gpuParams.pre_y[index_y][index_x];
+            gpuParams.temp_pre_x[index] = gpuParams.pre_y[index];
+            gpuParams.temp_pre_y[index] = gpuParams.pre_y[index];
 
-            sumx = gpuParams.temp_pre_x[index_y - 1][index_x] + gpuParams.temp_pre_x[index_y+1][index_x] +
-                   gpuParams.temp_pre_x[index_y][index_x - 1] + gpuParams.temp_pre_x[index_y][index_x + 1];
-            sumy = gpuParams.temp_pre_y[index_y - 1][index_x] + gpuParams.temp_pre_y[index_y+1][index_x] +
-                   gpuParams.temp_pre_y[index_y][index_x - 1] + gpuParams.temp_pre_y[index_y][index_x + 1];
+            sumx = gpuParams.temp_pre_x[index1] + gpuParams.temp_pre_x[index2] +
+                   gpuParams.temp_pre_x[index3] + gpuParams.temp_pre_x[index4];
+            sumy = gpuParams.temp_pre_y[index1] + gpuParams.temp_pre_y[index2] +
+                   gpuParams.temp_pre_y[index3] + gpuParams.temp_pre_y[index4];
 
-            gpuParams.pre_x[index_y][index_x] = (sumx + alpha*gpuParams.divergence[index_y][index_x])/beta;
-            gpuParams.pre_y[index_y][index_x] = (sumy + alpha*gpuParams.divergence[index_y][index_x])/beta;
+            gpuParams.pre_x[index] = (sumx + alpha*gpuParams.divergence[index])/beta;
+            gpuParams.pre_y[index] = (sumy + alpha*gpuParams.divergence[index])/beta;
 
             __syncthreads();
         }
@@ -165,14 +187,16 @@ __global__ void kernelGradientComputation(){
     int index_x = blockIdx.x * blockDim.x + threadIdx.x;
     int index_y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    gpuParams.grad_x[index_y][index_x] = (gpuParams.pre_x[index_y+1][index_x] - gpuParams.pre_x[index_y-1][index_x])/2;
-    gpuParams.grad_y[index_y][index_x] = (gpuParams.pre_y[index_y][index_x+1] - gpuParams.pre_y[index_y][index_x-1])/2;
+    int index = index_y * WIDTH + index_x;
+    
+    gpuParams.grad_x[index] = (gpuParams.pre_x[index] - gpuParams.pre_x[index])/2;
+    gpuParams.grad_y[index] = (gpuParams.pre_y[index] - gpuParams.pre_y[index])/2;
 
-    gpuParams.temp_vel_x[index_y][index_x] -= gpuParams.grad_x[index_y][index_x];
-    gpuParams.temp_vel_y[index_y][index_x] -= gpuParams.grad_y[index_y][index_x]; 
+    gpuParams.temp_vel_x[index] -= gpuParams.grad_x[index];
+    gpuParams.temp_vel_y[index] -= gpuParams.grad_y[index]; 
 
-    gpuParams.vel_x[index_y][index_x] -= gpuParams.grad_x[index_y][index_x];
-    gpuParams.vel_y[index_y][index_x] -= gpuParams.grad_y[index_y][index_x]; 
+    gpuParams.vel_x[index] -= gpuParams.grad_x[index];
+    gpuParams.vel_y[index] -= gpuParams.grad_y[index]; 
     
 }
 
@@ -181,6 +205,8 @@ shadePixel(int x, int y){
 
     int pixels_per_cell_x = 0;
     int pixels_per_cell_y = 0;
+
+    int index = y * WIDTH + x;
 
     int imageWidth = gpuParams.imageWidth;
     int imageHeight = gpuParams.imageHeight;
@@ -195,11 +221,12 @@ shadePixel(int x, int y){
     int pixelCol = x/pixels_per_cell_x;
 
     int particlesInPixel = 1;
+    int neighbor;
 
-    float r = gpuParams.vel_x[x][y]/(gpuParams.vel_x[x][y]+gpuParams.vel_y[x][y]);
-    float g = gpuParams.vel_y[x][y]/(gpuParams.vel_x[x][y]+gpuParams.vel_y[x][y]);
-    float b = 0.5f * ((gpuParams.pre_x[x][y]/(gpuParams.pre_x[x][y] + gpuParams.pre_y[x][y])) + 
-            (gpuParams.pre_y[x][y]/(gpuParams.pre_x[x][y] + gpuParams.pre_y[x][y])));
+    float r = gpuParams.vel_x[index]/(gpuParams.vel_x[index]+gpuParams.vel_y[index]);
+    float g = gpuParams.vel_y[index]/(gpuParams.vel_x[index]+gpuParams.vel_y[index]);
+    float b = 0.5f * ((gpuParams.pre_x[index]/(gpuParams.pre_x[index] + gpuParams.pre_y[index])) + 
+            (gpuParams.pre_y[index]/(gpuParams.pre_x[index] + gpuParams.pre_y[index])));
 
     int startCol = x/pixels_per_cell_x * pixels_per_cell_x;
     int startRow = y/pixels_per_cell_y * pixels_per_cell_y;
@@ -207,13 +234,15 @@ shadePixel(int x, int y){
     for(int i = startRow; i < startRow + pixels_per_cell_y; i++ ){
         for(int j = startCol; j < startCol + pixels_per_cell_x; j++){
 
-            if(gpuParams.particle[i][j] && (i != y && j != x)){
+            if(gpuParams.particle[index] && (i != y && j != x)){
+
+                neighbor = i * WIDTH + j;
 
                 particlesInPixel++;
-                r *= gpuParams.vel_x[x][y]/(gpuParams.vel_x[x][y]+gpuParams.vel_y[x][y]);
-                g *= gpuParams.vel_y[x][y]/(gpuParams.vel_x[x][y]+gpuParams.vel_y[x][y]);
-                b *= 0.5f * ((gpuParams.pre_x[x][y]/(gpuParams.pre_x[x][y] + gpuParams.pre_y[x][y])) + 
-            (gpuParams.pre_y[x][y]/(gpuParams.pre_x[x][y] + gpuParams.pre_y[x][y])));
+                r *= gpuParams.vel_x[neighbor]/(gpuParams.vel_x[neighbor]+gpuParams.vel_y[neighbor]);
+                g *= gpuParams.vel_y[neighbor]/(gpuParams.vel_x[neighbor]+gpuParams.vel_y[neighbor]);
+                b *= 0.5f * ((gpuParams.pre_x[neighbor]/(gpuParams.pre_x[neighbor] + gpuParams.pre_y[neighbor])) + 
+            (gpuParams.pre_y[neighbor]/(gpuParams.pre_x[neighbor] + gpuParams.pre_y[neighbor])));
 
             }
 
@@ -223,10 +252,11 @@ shadePixel(int x, int y){
     int offset = 4 * (pixelCol * imageWidth + pixelRow);
     float4* imgPtr = (float4 *) (&gpuParams.imageData[offset]);
 
+
+
     float a = 0.1f * particlesInPixel;
     float4 color = make_float4(r, g, b, a);
     *imgPtr = color;
-    printf("%d\n", imgPtr);
 }
 
 __global__ void kernelRender(){
@@ -234,9 +264,12 @@ __global__ void kernelRender(){
     int index_x = blockIdx.x * blockDim.x + threadIdx.x;
     int index_y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if(index_x < gpuParams.width and index_y < gpuParams.length){
+    int index = index_y * WIDTH + index_x;
+    int size = LENGTH * WIDTH;
 
-        if(gpuParams.particle[index_x][index_y])
+    if(index < size){
+
+        if(gpuParams.particle[index])
             shadePixel(index_x,index_y);
         
     }
@@ -383,7 +416,7 @@ CudaRenderer::clearImage() {
 void
 CudaRenderer::loadScene(SceneName scene) {
     sceneName = scene;
-    box = FluidBoxCreate2D(LENGTH,WIDTH,DT);
+    box = FluidBoxCreate(LENGTH,WIDTH,DT,DIFF_CONST);
 
 }
 
@@ -429,37 +462,65 @@ CudaRenderer::setup() {
     // See the CUDA Programmer's Guide for descriptions of
     // cudaMalloc and cudaMemcpy
 
-    int length = box->length;
-    int width = box->width;
+    int size = box->size;
 
     cudaMalloc(&cudaDevice_imageData, sizeof(float) * 4 * image->width * image->height);
-    cudaMalloc(&cudaDevice_vel_x, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_vel_y, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_temp_vel_x, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_temp_vel_y, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_pre_x, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_pre_y, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_temp_pre_x, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_temp_pre_y, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_grad_x, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_grad_y, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_divergence, sizeof(float) * length * width);
-    cudaMalloc(&cudaDevice_particle, sizeof(bool) * length * width);
-    cudaMalloc(&cudaDevice_temp_particle, sizeof(bool) * length * width);
+    cudaMalloc(&cudaDevice_vel_x, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_vel_y, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_temp_vel_x, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_temp_vel_y, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_pre_x, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_pre_y, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_temp_pre_x, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_temp_pre_y, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_grad_x, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_grad_y, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_divergence, sizeof(float) * size);
+    cudaMalloc(&cudaDevice_particle, sizeof(bool) * size);
+    cudaMalloc(&cudaDevice_temp_particle, sizeof(bool) * size);
 
-    cudaMemcpy(cudaDevice_vel_x, box->vel_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_vel_y, box->vel_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_vel_x, box->temp_vel_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_vel_y, box->temp_vel_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_pre_x, box->pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_pre_y, box->pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_pre_x, box->temp_pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_pre_y, box->temp_pre_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_grad_x, box->grad_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_grad_y, box->grad_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_particle, box->particle[0], sizeof(bool) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_temp_particle, box->temp_particle[0], sizeof(bool) * length * width, cudaMemcpyHostToDevice);
-    cudaMemcpy(cudaDevice_divergence, box->divergence[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);    
+    cudaMemcpy(cudaDevice_vel_x, box->vel_x, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_vel_y, box->vel_y, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_vel_x, box->temp_vel_x, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_vel_y, box->temp_vel_y, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_pre_x, box->pre_x, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_pre_y, box->pre_x, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_pre_x, box->temp_pre_x, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_pre_y, box->temp_pre_y, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_grad_x, box->grad_x, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_grad_y, box->grad_y, sizeof(float) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_particle, box->particle, sizeof(bool) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_temp_particle, box->temp_particle, sizeof(bool) * size, cudaMemcpyHostToDevice);
+    cudaMemcpy(cudaDevice_divergence, box->divergence, sizeof(float) * size, cudaMemcpyHostToDevice);       
+
+    // cudaMalloc(&cudaDevice_imageData, sizeof(float) * 4 * image->width * image->height);
+    // cudaMalloc(&cudaDevice_vel_x, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_vel_y, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_temp_vel_x, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_temp_vel_y, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_pre_x, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_pre_y, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_temp_pre_x, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_temp_pre_y, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_grad_x, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_grad_y, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_divergence, sizeof(float) * length * width);
+    // cudaMalloc(&cudaDevice_particle, sizeof(bool) * length * width);
+    // cudaMalloc(&cudaDevice_temp_particle, sizeof(bool) * length * width);
+
+    // cudaMemcpy(cudaDevice_vel_x, box->vel_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_vel_y, box->vel_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_temp_vel_x, box->temp_vel_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_temp_vel_y, box->temp_vel_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_pre_x, box->pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_pre_y, box->pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_temp_pre_x, box->temp_pre_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_temp_pre_y, box->temp_pre_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_grad_x, box->grad_x[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_grad_y, box->grad_y[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_particle, box->particle[0], sizeof(bool) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_temp_particle, box->temp_particle[0], sizeof(bool) * length * width, cudaMemcpyHostToDevice);
+    // cudaMemcpy(cudaDevice_divergence, box->divergence[0], sizeof(float) * length * width, cudaMemcpyHostToDevice);        
 
     // Initialize parameters in constant memory.  We didn't talk about
     // constant memory in class, but the use of read-only constant
@@ -473,8 +534,8 @@ CudaRenderer::setup() {
 
     params.sceneName = sceneName;
 
-    params.length = length;
-    params.width = width;
+    params.length = box->length;
+    params.width = box->width;
 
     params.time_step_size = box->time_step_size;
     params.diff_const = box->diff_const;
@@ -506,15 +567,19 @@ CudaRenderer::setup() {
     params.imageData = cudaDevice_imageData;
 
     cudaMemcpyToSymbol(gpuParams, &params, sizeof(GlobalConstants));
+
+    // box->mouse_i = WIDTH/2;
+    // box->mouse_j = LENGTH/2;
+    // addForce2D(box);
 }
 
 
 void
 CudaRenderer::advanceAnimation() {
-     // 256 threads per block is a healthy number
+     
     dim3 blockDim(BLOCKDIM, BLOCKDIM);
-    dim3 gridDim((LENGTH + blockDim.x - 1)/blockDim.x, (
-                  WIDTH + blockDim.y - 1)/blockDim.y);
+    dim3 gridDim((LENGTH + blockDim.x - 1)/blockDim.x,
+                  (WIDTH + blockDim.y - 1)/blockDim.y);
 
     // int threadsPerBlock = 48;
     // int numBlocks = box->size/48;
@@ -530,7 +595,8 @@ CudaRenderer::advanceAnimation() {
     cudaThreadSynchronize();
     double endTime = CycleTimer::currentSeconds();
 
-    printf("Cuda Version takes %f ms\n",(endTime - startTime)*1000*12);
+    printf("Cuda Version takes %f ms\n",(endTime - startTime)*1000);
+    
 }
 
 void
