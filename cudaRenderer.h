@@ -7,7 +7,7 @@
 
 #include "nv_seq2d.h"
 
-#define BLOCKDIM 24
+#define BLOCKDIM 16
 
 struct Image;
 
@@ -64,7 +64,7 @@ public:
 
     void render();
 
-    void shadePixel(float* imgPtr);
+    void shadePixel(int i, int j);
 };
 
 
