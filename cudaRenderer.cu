@@ -75,7 +75,7 @@ __global__ void kernelAdvection(){
         old_x = round(index_x - gpuParams.temp_vel_x[index_y][index_x]*gpuParams.time_step_size);
         old_y = round(index_y - gpuParams.temp_vel_y[index_y][index_x]*gpuParams.time_step_size);
 
-        if(old_x < LENGTH and old_x >= 0 and old_y < WIDTH and old_y >= 0 and gpuParams.particle[index_y][index_x]){
+        if(old_x < LENGTH and old_x >= 0 and old_y < WIDTH and old_y >= 0 ){
 
             gpuParams.temp_particle[index_y][index_x] = gpuParams.particle[old_y][old_x];
 
