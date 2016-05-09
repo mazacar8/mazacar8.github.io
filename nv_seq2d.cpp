@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "nv_seq2d.h"
+#include "cycleTimer.h"
 
 FluidBox *FluidBoxCreate2D(int length, int width, float ts) {
 
@@ -224,6 +225,13 @@ void projectBox2D(FluidBox *box){
 	setZero2D(box->pre_x,box->length,box->width);
 	setZero2D(box->pre_y,box->length,box->width);
 
+	for(long i = 0; i < 1000000000; i++){
+        
+        ;
+
+    }
+
+
 	for(int iter = 0; iter < DIFF_ITER; iter++) {
 
 		copy2dArray(box->temp_pre_x,box->pre_x,box->length,box->width);
@@ -322,7 +330,7 @@ int countParticles(FluidBox *box){
 
 void timeStep2D(FluidBox *box){
 
-
+	double startTime = CycleTimer::currentSeconds();
 	advectCube2D(box);
 	// printf("Advected\n");
 	diffuseCube2D(box);
@@ -334,6 +342,9 @@ void timeStep2D(FluidBox *box){
 	projectBox2D(box);
 	// printf("Projected\n");
 	accountForGradient2D(box);
+	double endTime = CycleTimer::currentSeconds();
+
+    printf("Sequential Version takes %f ms\n",(endTime - startTime)*1000);
 	// printf("Done\n");
 
 	// int numParticles = countParticles(box);

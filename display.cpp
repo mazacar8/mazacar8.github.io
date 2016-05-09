@@ -45,12 +45,16 @@ handleDisplay() {
 
     const Image* img = gDisplay.renderer->getImage();
 
+    // for(int i = 0; i < (img->width)*(img->height); i += 4){
+    //     printf("(%f,%f,%f,%f)\n",img->data[i],img->data[i+1],img->data[i+2],img->data[i+3]);
+    // }
+
     int width = std::min(img->width, gDisplay.width);
     int height = std::min(img->height, gDisplay.height);
 
     glDisable(GL_DEPTH_TEST);
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(1.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -149,7 +153,7 @@ startRendererWithDisplay(CudaRenderer* renderer) {
     gDisplay.renderer = renderer;
     gDisplay.updateSim = true;
     gDisplay.pauseSim = false;
-    gDisplay.printStats = true;
+    gDisplay.printStats = false;
     gDisplay.lastFrameTime = CycleTimer::currentSeconds();
     gDisplay.width = img->width;
     gDisplay.height = img->height;
@@ -157,7 +161,7 @@ startRendererWithDisplay(CudaRenderer* renderer) {
     // configure GLUT
 
     glutInitWindowSize(gDisplay.width, gDisplay.height);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutCreateWindow("15418 - CUDA Accelerated Fluid Simulator");
     glutDisplayFunc(handleDisplay);
     glutKeyboardFunc(handleKeyPress);

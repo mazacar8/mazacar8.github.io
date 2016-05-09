@@ -5,7 +5,7 @@
 #include "platformgl.h" 
 #include <math.h>
 #include <omp.h>
-//#include "nv_seq.h"
+#include "nv_omp.h"
 #include "nv_seq2d.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +16,11 @@
 
 #define WINDOW_HEIGHT 350
 #define WINDOW_WIDTH 350
+
+bool cuda = false;
+bool omp = false;
+bool ref = false;
+
 
 void startRendererWithDisplay(CudaRenderer* renderer);
 
@@ -36,9 +41,7 @@ std::vector< Point > points;
 
 /* Global variables */
 char title[] = "Fluid Simulation";
-GLfloat angleCube = 0.0f;     // Rotational angle for cube [NEW]
 int refreshMills = DT * 1000;        // refresh interval in milliseconds [NEW]
-GLfloat camera_angle = 0.0f;
 bool mousePressed = false;
 
 FluidBox *box;
@@ -115,7 +118,11 @@ void timer(int value) {
 
 	glutPostRedisplay();      // Post re-paint request to activate display()
 
-	timeStep2D(box);
+    if(ref)
+	   timeStep2D(box);
+
+    else if(omp)
+        timeStepOMP(box);
 
 	points.clear();
 
@@ -172,8 +179,6 @@ void handleMousePress(int button, int state, int x, int y){
 
 int main(int argc, char** argv) {
 
-	bool cuda = false;
-
 	 // parse commandline options ////////////////////////////////////////////
     int opt;
     static struct option long_options[] = {
@@ -190,7 +195,10 @@ int main(int argc, char** argv) {
                 cuda = true;
 
             else if(std::string(optarg).compare("ref") == 0)
-            	cuda = false;
+            	ref = true;
+
+            else if(std::string(optarg).compare("omp") == 0)
+                omp = true;
 
             else{
             	usage(argv[0]);
@@ -217,22 +225,26 @@ int main(int argc, char** argv) {
 
         glutInit(&argc, argv);
         startRendererWithDisplay(renderer);
+        /// Never gets here ///
     }
 
-    else{
+    else if(omp)
+        box = FluidBoxCreateOMP(LENGTH, WIDTH, DT);
 
-    	box = FluidBoxCreate2D(LENGTH, WIDTH, DT);
-		glutInit(&argc, argv);            // Initialize GLUT
-		glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE); // Enable double buffered mode
-		glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);   // Set the window's initial width & height
-		glutCreateWindow(title);          // Create window with the given title
-		glutDisplayFunc(display);       // Register callback handler for window re-paint event
-		glutReshapeFunc(reshape);       // Register callback handler for window re-size event
-		glutMouseFunc(handleMousePress);
-		initGL();                       // Our own OpenGL initialization
-		glutTimerFunc(0, timer, 0);     // First timer call immediately [NEW]
-		glutMainLoop();                 // Enter the infinite event-processing loop
-	}
+    else
+        box = FluidBoxCreate2D(LENGTH, WIDTH, DT);
+		
+    glutInit(&argc, argv);            // Initialize GLUT
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE); // Enable double buffered mode
+	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);   // Set the window's initial width & height
+	glutCreateWindow(title);          // Create window with the given title
+	glutDisplayFunc(display);       // Register callback handler for window re-paint event
+	glutReshapeFunc(reshape);       // Register callback handler for window re-size event
+	glutMouseFunc(handleMousePress);
+	initGL();                       // Our own OpenGL initialization
+	glutTimerFunc(0, timer, 0);     // First timer call immediately [NEW]
+	glutMainLoop();                 // Enter the infinite event-processing loop
+	
 
 
 	return 0;

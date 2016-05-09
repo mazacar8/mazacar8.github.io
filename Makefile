@@ -5,7 +5,7 @@ CU_FILES   := cudaRenderer.cu
 
 CU_DEPS    :=
 
-CC_FILES   := main.cpp nv_seq2d.cpp display.cpp 
+CC_FILES   := main.cpp nv_seq2d.cpp display.cpp nv_omp.cpp
 
 LOGS	   := 
 
@@ -30,7 +30,8 @@ LDFRAMEWORKS := $(addprefix -framework , $(FRAMEWORKS))
 
 NVCC=nvcc
 
-OBJS=$(OBJDIR)/main.o $(OBJDIR)/nv_seq2d.o $(OBJDIR)/display.o $(OBJDIR)/cudaRenderer.o \
+OBJS=$(OBJDIR)/main.o $(OBJDIR)/nv_seq2d.o $(OBJDIR)/display.o $(OBJDIR)/nv_omp.o \
+	$(OBJDIR)/cudaRenderer.o
 
 .PHONY: dirs clean
 

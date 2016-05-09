@@ -530,8 +530,9 @@ CudaRenderer::advanceAnimation() {
     cudaThreadSynchronize();
     double endTime = CycleTimer::currentSeconds();
 
-    printf("Cuda Version takes %f seconds\n",endTime - startTime);
+    printf("Cuda Version takes %f ms\n",(endTime - startTime)*1000*12);
 }
+
 void
 CudaRenderer::render() {
 

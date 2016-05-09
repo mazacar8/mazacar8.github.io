@@ -4,9 +4,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "nv_seq2d.h"
+#include "nv_omp.h"
+#include "cycleTimer.h"
 
-FluidBox *FluidBoxCreate2D(int length, int width, float ts) {
+FluidBox *FluidBoxCreateOMP(int length, int width, float ts) {
 
 	FluidBox *box = new FluidBox;
 
@@ -62,7 +63,7 @@ FluidBox *FluidBoxCreate2D(int length, int width, float ts) {
 
 }
 
-void FluidBoxFree2D(FluidBox *box) {
+void FluidBoxFreeOMP(FluidBox *box) {
 
 
 	delete [] box->vel_x;
@@ -87,13 +88,13 @@ void FluidBoxFree2D(FluidBox *box) {
 // 	box->density[index] += density;
 // }
 
-void addVelocity2D(FluidBox *box, int x, int y, float vel_x, float vel_y) {
+void addVelocityOMP(FluidBox *box, int x, int y, float vel_x, float vel_y) {
 
 	box->vel_x[x][y] += vel_x;
 	box->vel_y[x][y] += vel_y;
 }
 
-void advectCube2D(FluidBox *box) {
+void advectCubeOMP(FluidBox *box) {
 
 	float dt = box->time_step_size;
 	int old_i,old_j,old_index;
@@ -139,7 +140,7 @@ void advectCube2D(FluidBox *box) {
 
 }
 
-void diffuseCube2D(FluidBox *box) {
+void diffuseCubeOMP(FluidBox *box) {
 
 	float diff = box->diff_const;
 	float alpha = (box->length) * (box->width)/(box->time_step_size * diff);
@@ -149,8 +150,8 @@ void diffuseCube2D(FluidBox *box) {
 
 	for(int iter = 0; iter < DIFF_ITER; iter++) {
 
-		copy2dArray(box->temp_vel_x,box->vel_x,box->length,box->width);
-		copy2dArray(box->temp_vel_y,box->vel_y,box->length,box->width);
+		copy2dArrayOMP(box->temp_vel_x,box->vel_x,box->length,box->width);
+		copy2dArrayOMP(box->temp_vel_y,box->vel_y,box->length,box->width);
 
 		#pragma omp parallel for
 		for (int i = 1; i < box->length - 1; i++){
@@ -173,7 +174,7 @@ void diffuseCube2D(FluidBox *box) {
 
 }
 
-void addForce2D(FluidBox *box){
+void addForceOMP(FluidBox *box){
 
 	printf("Add Force called at particle %d, %d\n",box->mouse_i,box->mouse_j);
 	box->mousePressed = false;
@@ -183,24 +184,24 @@ void addForce2D(FluidBox *box){
 
 	float vel_x = box->vel_x[i][j];
 	float vel_y = box->vel_y[i][j];
-	addVelocity2D(box,i,j,vel_x,vel_y);
+	addVelocityOMP(box,i,j,vel_x,vel_y);
 
 	#pragma omp parallel for
 	for(int m = 0; m < IMPACT_RADIUS; m++) {
 		for(int n = 0; n < IMPACT_RADIUS; n++) {
 
 			if(i-m > 0 && j-n > 0 )
-				addVelocity2D(box,i-m,j-n,box->vel_x[i-m][j-n],box->vel_y[i-m][j-n]);
+				addVelocityOMP(box,i-m,j-n,box->vel_x[i-m][j-n],box->vel_y[i-m][j-n]);
 
 			if(i+m < box->length && j+n < box->width )
-				addVelocity2D(box,i+m,j+n,box->vel_x[i+m][j+n],box->vel_y[i+m][j+n]);
+				addVelocityOMP(box,i+m,j+n,box->vel_x[i+m][j+n],box->vel_y[i+m][j+n]);
 			
 		}
 	}
 
 }
 
-void computeDivergence2D(FluidBox *box) {
+void computeDivergenceOMP(FluidBox *box) {
 
 	#pragma omp parallel for
 	for (int i = 1; i < box->length - 1; i++){
@@ -217,20 +218,20 @@ void computeDivergence2D(FluidBox *box) {
 
 }
 
-void projectBox2D(FluidBox *box){
+void projectBoxOMP(FluidBox *box){
 
 	float alpha = (box->length) * (box->width);
 	float beta = 4;
-	computeDivergence2D(box);
+	computeDivergenceOMP(box);
 	float sumx, sumy;
 
-	setZero2D(box->pre_x,box->length,box->width);
-	setZero2D(box->pre_y,box->length,box->width);
+	setZeroOMP(box->pre_x,box->length,box->width);
+	setZeroOMP(box->pre_y,box->length,box->width);
 
 	for(int iter = 0; iter < DIFF_ITER; iter++) {
 
-		copy2dArray(box->temp_pre_x,box->pre_x,box->length,box->width);
-		copy2dArray(box->temp_pre_y,box->pre_y,box->length,box->width);
+		copy2dArrayOMP(box->temp_pre_x,box->pre_x,box->length,box->width);
+		copy2dArrayOMP(box->temp_pre_y,box->pre_y,box->length,box->width);
 		
 		#pragma omp parallel for
 		for (int i = 1; i < box->length - 1; i++){
@@ -256,7 +257,7 @@ void projectBox2D(FluidBox *box){
 
 }
 
-void setZero2D(float** array, int length, int width){
+void setZeroOMP(float** array, int length, int width){
 
 	#pragma omp parallel for
 	for(int i = 0; i < length; i++){
@@ -271,7 +272,7 @@ void setZero2D(float** array, int length, int width){
 
 }
 
-void copy2dArray(float** dst,float** src, int length, int width){
+void copy2dArrayOMP(float** dst,float** src, int length, int width){
 
 	#pragma omp parallel for
 	for(int i = 0; i < length; i++){
@@ -286,7 +287,7 @@ void copy2dArray(float** dst,float** src, int length, int width){
 
 }
 
-void accountForGradient2D(FluidBox *box) {
+void accountForGradientOMP(FluidBox *box) {
 
 	#pragma omp parallel for
 	for (int i = 1; i < box->length - 1; i++){
@@ -309,42 +310,45 @@ void accountForGradient2D(FluidBox *box) {
 
 }
 
-int countParticles(FluidBox *box){
+// int countParticles(FluidBox *box){
 
-	int numParticles = 0;
+// 	int numParticles = 0;
 
-	#pragma omp parallel for
-	for (int i = 1; i < box->length - 1; i++){
+// 	#pragma omp parallel for
+// 	for (int i = 1; i < box->length - 1; i++){
 
-		for (int j = 1; j < box->width - 1; j++) {
+// 		for (int j = 1; j < box->width - 1; j++) {
 
-			if(box->particle[i][j]) {
-				#pragma omp critical 
-				{
-					numParticles ++;
-				}
-			}
-		}
-	}
+// 			if(box->particle[i][j]) {
+// 				#pragma omp critical 
+// 				{
+// 					numParticles ++;
+// 				}
+// 			}
+// 		}
+// 	}
 
-	return numParticles;
+// 	return numParticles;
 
-}
+// }
 
-void timeStep2D(FluidBox *box){
+void timeStepOMP(FluidBox *box){
 
-
-	advectCube2D(box);
+	double startTime = CycleTimer::currentSeconds();
+	advectCubeOMP(box);
 	// printf("Advected\n");
-	diffuseCube2D(box);
+	diffuseCubeOMP(box);
 	// printf("Diffused\n");
 
 	if(box->mousePressed && box->particle[box->mouse_i][box->mouse_j])
-		addForce2D(box);
+		addForceOMP(box);
 
-	projectBox2D(box);
+	projectBoxOMP(box);
 	// printf("Projected\n");
-	accountForGradient2D(box);
+	accountForGradientOMP(box);
+	double endTime = CycleTimer::currentSeconds();
+
+    printf("OpenMP Version takes %f ms\n",(endTime - startTime)*1000);
 	// printf("Done\n");
 
 	// int numParticles = countParticles(box);
