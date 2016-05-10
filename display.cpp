@@ -1,6 +1,6 @@
 #include <algorithm>
 
-#include "circleRenderer.h"
+#include "cudaRenderer.h"
 #include "cycleTimer.h"
 #include "image.h"
 #include "platformgl.h"
@@ -17,7 +17,7 @@ static struct {
     bool pauseSim;
     double lastFrameTime;
 
-    CircleRenderer* renderer;
+    CudaRenderer* renderer;
 
 } gDisplay;
 
@@ -45,12 +45,16 @@ handleDisplay() {
 
     const Image* img = gDisplay.renderer->getImage();
 
+    // for(int i = 0; i < (img->width)*(img->height); i += 4){
+    //     printf("(%f,%f,%f,%f)\n",img->data[i],img->data[i+1],img->data[i+2],img->data[i+3]);
+    // }
+
     int width = std::min(img->width, gDisplay.width);
     int height = std::min(img->height, gDisplay.height);
 
     glDisable(GL_DEPTH_TEST);
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(1.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -66,6 +70,7 @@ handleDisplay() {
     // and then bind this surface as a texture enabling it's use in
     // normal openGL rendering
     glRasterPos2i(0, 0);
+
     glDrawPixels(width, height, GL_RGBA, GL_FLOAT, img->data);
 
     double currentTime = CycleTimer::currentSeconds();
@@ -106,7 +111,7 @@ handleKeyPress(unsigned char key, int x, int y) {
 
 // renderPicture --
 //
-// At the reall work is done here, not in the display handler
+// At the real work is done here, not in the display handler
 void
 renderPicture() {
 
@@ -139,7 +144,7 @@ renderPicture() {
 }
 
 void
-startRendererWithDisplay(CircleRenderer* renderer) {
+startRendererWithDisplay(CudaRenderer* renderer) {
 
     // setup the display
 
@@ -148,7 +153,7 @@ startRendererWithDisplay(CircleRenderer* renderer) {
     gDisplay.renderer = renderer;
     gDisplay.updateSim = true;
     gDisplay.pauseSim = false;
-    gDisplay.printStats = true;
+    gDisplay.printStats = false;
     gDisplay.lastFrameTime = CycleTimer::currentSeconds();
     gDisplay.width = img->width;
     gDisplay.height = img->height;
@@ -156,8 +161,8 @@ startRendererWithDisplay(CircleRenderer* renderer) {
     // configure GLUT
 
     glutInitWindowSize(gDisplay.width, gDisplay.height);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
-    glutCreateWindow("CMU 15-418 Assignment 2 - Circle Renderer");
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+    glutCreateWindow("15418 - CUDA Accelerated Fluid Simulator");
     glutDisplayFunc(handleDisplay);
     glutKeyboardFunc(handleKeyPress);
     glutMainLoop();
