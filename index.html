@@ -26,7 +26,9 @@
 
     <div class="container">
       <section id="main_content">
-        <h3>
+        <p><a href="https://docs.google.com/document/d/1zuOmMYf3uBrEdFAbsYXAR_zYPlTn3KDoO1QMf6wtUFk/edit?usp=sharing">Final Writeup</a></p>
+
+<h3>
 <a id="summary" class="anchor" href="#summary" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Summary</h3>
 
 <p>We are going to create a high resolution dynamic fluid simulator with the aim of efficiently using the large amount of parallelism in the CUDA-enabled NVIDIA GTX 780 GPU. The simulator is based on the Navier-Stokes equations which describes the motion of viscous fluids. Another goal of this project is to compare performance against a 2.2 GHz intel core i7 processor.</p>
@@ -89,7 +91,7 @@
 <li>Graphs or timing analysis to show speedup from the sequential implementation.</li>
 </ul>
 
-<p><strong>Update (04/19/16):</strong> We still think we can achieve the above goals effectively.</p>
+<p><strong>Update ((Checkpoint)):</strong> We still think we can achieve the above goals effectively.</p>
 
 <p><strong>Hope To Achieve</strong></p>
 
@@ -99,7 +101,7 @@
 <li>Modify the fluid simulator to take into account external, real time forces.</li>
 </ul>
 
-<p><strong>Update (04/19/16):</strong></p>
+<p><strong>Update ((Checkpoint)):</strong></p>
 
 <ul>
 <li>We are still unsure of whether we will be able to implement a version parallel version of the algorithm for the CPU. At this point we might focus our efforts on comparing the CUDA version to a sequential implementation. We feel that this will help us achieve the best results we can using the GPU and also help us test and improve our code more thoroughly. </li>
@@ -125,7 +127,7 @@
 <p>These systems are a good choice for our fluid simulator since the GPU is the fastest one available and is well suited to a compute-intensive project due to high scope for parallelism. The i7 processor would be a good benchmark to analyze CPU performance and compare it with the GPU's performance.</p>
 
 <h3>
-<a id="updated-detailed-schedule-041916" class="anchor" href="#updated-detailed-schedule-041916" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Updated Detailed Schedule (04/19/16)</h3>
+<a id="updated-detailed-schedule-checkpoint" class="anchor" href="#updated-detailed-schedule-checkpoint" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Updated Detailed Schedule (Checkpoint)</h3>
 
 <table>
 <thead>
@@ -189,7 +191,7 @@
 </table>
 
 <h3>
-<a id="work-completed-so-far" class="anchor" href="#work-completed-so-far" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Work Completed So Far</h3>
+<a id="work-completed-so-farcheckpoint" class="anchor" href="#work-completed-so-farcheckpoint" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Work Completed So Far(Checkpoint)</h3>
 
 <ul>
 <li>We completed the Sequential Implementation of the Navier Stokes Equation. To accomplish this, we understood the algorithm and segregated it into different parts. For each part of the algorithm, we implemented a separate function. An application of these in order to the grid state performs one time step of the Navier-Stokes equation.</li>
@@ -197,7 +199,7 @@
 </ul>
 
 <h3>
-<a id="concerning-issues" class="anchor" href="#concerning-issues" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Concerning Issues</h3>
+<a id="concerning-issuescheckpoint" class="anchor" href="#concerning-issuescheckpoint" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Concerning Issues(Checkpoint)</h3>
 
 <ul>
 <li>The most concerning issue right now is we are unsure of whether we can effectively employ 3D graphics for our simulations. </li>
